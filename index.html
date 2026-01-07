@@ -7,7 +7,16 @@
   <style>
     :root { --bg:#0b1020; --muted:#aab3d0; --text:#e9ecff; --line:rgba(255,255,255,.08); }
     *{box-sizing:border-box}
-    body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 800px at 20% -10%, rgba(86,116,255,.35), transparent 55%), radial-gradient(900px 700px at 110% 10%, rgba(87,239,196,.25), transparent 50%), var(--bg); color:var(--text);}
+    body{
+      margin:0;
+      font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background-color:var(--bg);
+      background-image:
+        radial-gradient(1200px 800px at 20% -10%, rgba(86,116,255,.35), transparent 55%),
+        radial-gradient(900px 700px at 110% 10%, rgba(87,239,196,.25), transparent 50%);
+      background-repeat:no-repeat;
+      color:var(--text);
+    }
     .wrap{max-width:1120px;margin:28px auto;padding:0 16px;}
     header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
     h1{font-size:20px;margin:0;letter-spacing:.2px}

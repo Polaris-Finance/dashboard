@@ -1,0 +1,1690 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polaris Yield Dashboard</title>
+  <style>
+    :root { --bg:#0b1020; --muted:#aab3d0; --text:#e9ecff; --line:rgba(255,255,255,.08); }
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 800px at 20% -10%, rgba(86,116,255,.35), transparent 55%), radial-gradient(900px 700px at 110% 10%, rgba(87,239,196,.25), transparent 50%), var(--bg); color:var(--text);} 
+    .wrap{max-width:1120px;margin:28px auto;padding:0 16px;}
+    header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    h1{font-size:20px;margin:0;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:12px}
+    .grid{display:grid;grid-template-columns: 410px 1fr; gap:14px;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.35);} 
+    .card h2{margin:0 0 10px 0; font-size:13px; letter-spacing:.3px; text-transform:uppercase; color:#dbe1ff;}
+
+    .row{display:grid;grid-template-columns: 1fr 190px; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line);} 
+    .row:first-of-type{border-top:none;}
+    label{display:block;}
+    .hint{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    input, select{width:100%; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--text); outline:none;}
+    input:focus, select:focus{border-color:rgba(120,155,255,.5); box-shadow:0 0 0 4px rgba(120,155,255,.12);} 
+
+    .rowStack{display:grid; grid-template-areas:"stack"; border-top:1px solid var(--line); padding:8px 0;}
+    .rowStack .row{grid-area:stack; border-top:none; padding:0;}
+    .rowStack .row.is-hidden{visibility:hidden; opacity:0; pointer-events:none;}
+
+    .toggle{display:flex;align-items:center;justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
+    .toggle:first-of-type{border-top:none}
+
+    /* Switch styling (knob stays inside track) */
+    .switch{position:relative; width:42px; height:24px; flex:0 0 auto; display:inline-block; overflow:hidden;}
+    .switch input{opacity:0; width:0; height:0;}
+    .slider{position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,.12); border:1px solid var(--line); transition:.2s; border-radius:999px; overflow:hidden;}
+    .slider:before{position:absolute; content:""; height:18px; width:18px; left:3px; top:2px; background:white; transition:.2s; border-radius:50%;}
+    .switch input:checked + .slider{background:rgba(120,155,255,.28); border-color:rgba(120,155,255,.38)}
+    .switch input:checked + .slider:before{transform:translateX(18px)}
+
+    .cardHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .cardHead h2{margin:0}
+    .segmented input{display:none}
+    .segmented{display:inline-flex;align-items:center;gap:4px; padding:4px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.18);}
+    .segBtn{border:0; background:transparent; color:var(--muted); padding:6px 12px; border-radius:999px; font-size:12px; font-weight:650; letter-spacing:.2px; cursor:pointer;}
+    .segBtn.active{background:rgba(120,155,255,.28); color:#e9ecff; box-shadow:inset 0 0 0 1px rgba(120,155,255,.45);}
+    .segBtn:focus-visible{outline:2px solid rgba(120,155,255,.5); outline-offset:2px;}
+
+    .kpis{display:grid;grid-template-columns: repeat(4, 1fr); gap:12px;}
+    .kpi{padding:14px;border-radius:16px;border:1px solid var(--line); background:rgba(0,0,0,.12);} 
+    .kpi .t{color:var(--muted);font-size:12px}
+    .kpi .v{font-size:20px; margin-top:6px; font-weight:650; letter-spacing:.3px}
+    .kpi .s{color:var(--muted); font-size:12px; margin-top:4px}
+
+    .eq{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.16);border:1px solid var(--line); margin-top:10px;}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .table{width:100%; border-collapse:collapse; margin-top:10px;}
+    .table th, .table td{padding:8px 8px; border-top:1px solid var(--line); text-align:right;}
+    .table th:first-child, .table td:first-child{text-align:left;}
+    .pill{display:inline-flex;align-items:center;gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.12); color:var(--muted); font-size:12px}
+    .metricGroups{display:grid; gap:10px; margin-top:12px;}
+    .metricGroup{border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.10); padding:8px;}
+    .metricGroup summary{cursor:pointer; color:#dbe1ff; font-size:12px; letter-spacing:.3px; text-transform:uppercase;}
+    .metricGroup[open] summary{margin-bottom:8px;}
+    .metricGroup .table{margin-top:0;}
+
+    .plotWrap{margin-top:12px;border-radius:16px;border:1px solid var(--line);background:rgba(0,0,0,.10);padding:10px;}
+    canvas{width:100%; height:330px; display:block;}
+    .plotLegend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;color:var(--muted);font-size:12px}
+    .sw{display:inline-flex;align-items:center;gap:6px}
+    .box{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.15)}
+
+    /* CDP panel */
+    .cdpPanel{border-radius:16px; border:1px solid var(--line); background:rgba(0,0,0,.10); padding:14px;}
+    .cdpPanel .row{border-top:1px solid var(--line); grid-template-columns: 1fr 240px; gap:6px;}
+    .cdpPanel .row:first-of-type{border-top:none;}
+    .cdpGrid{display:grid;grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:10px;}
+    .cdpDivider{height:1px; background:var(--line); margin:10px 0;}
+    .inputMeta{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;}
+    .metaCol{display:flex; flex-direction:column; align-items:flex-end; min-width:120px;}
+    .metaVal{font-size:12px; font-weight:650; color:var(--text);}
+    .metaSub{font-size:11px; color:var(--muted);}
+    .metaSub.multiline{white-space:pre-line;}
+    .inputUnitWrap{position:relative;}
+    .inputUnitWrap input{padding-right:60px;}
+    .inputUnit{position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--muted); pointer-events:none;}
+
+    /* Flow graph */
+    .flowGraph{position:relative; border-radius:16px; border:1px solid var(--line); background:rgba(0,0,0,.10); padding:16px 18px; overflow:hidden;}
+    .flowGrid{position:relative; display:grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows:auto auto auto; gap:60px 60px; z-index:2;}
+    .node{border-radius:16px; border:1px solid var(--line); background:rgba(0,0,0,.18); padding:12px 12px; min-height:66px;}
+    .node .nt{color:var(--muted); font-size:12px}
+    .node .nv{font-size:18px; font-weight:750; margin-top:6px; letter-spacing:.2px}
+    .node .ns{color:var(--muted); font-size:12px; margin-top:4px}
+    .node .ns.multiline{white-space:pre-line;}
+    .node.emph{background:linear-gradient(180deg, rgba(120,155,255,.18), rgba(0,0,0,.12)); border-color:rgba(120,155,255,.38)}
+    .node.good{background:linear-gradient(180deg, rgba(87,239,196,.14), rgba(0,0,0,.12)); border-color:rgba(87,239,196,.28)}
+    .node.warn{background:linear-gradient(180deg, rgba(255, 170, 80, .12), rgba(0,0,0,.12)); border-color:rgba(255, 170, 80, .22)}
+    .node.bad{background:linear-gradient(180deg, rgba(255, 99, 132, .18), rgba(0,0,0,.12)); border-color:rgba(255, 99, 132, .35)}
+    .flowSvg{position:absolute; inset:0; width:100%; height:100%; z-index:3; pointer-events:none;}
+    .flowNote{margin-top:10px; color:var(--muted); font-size:12px}
+    .flowLegend{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; color:var(--muted); font-size:12px}
+    .chip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.12)}
+
+    details{margin-top:12px}
+    summary{cursor:pointer;color:#dbe1ff}
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr;}
+      .kpis{grid-template-columns:1fr;}
+      .cdpPanel .row{grid-template-columns:1fr;}
+      .inputMeta{grid-template-columns:1fr;}
+      .metaCol{align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Polaris Yield Dashboard</h1>
+      </div>
+      <div class="pill">v0.9.1</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inputs</h2>
+
+        <!-- Used to infer current QT and current curve price once α is fixed by premine. -->
+        <div class="row">
+          <label>pETH market cap</label>
+          <div class="inputUnitWrap">
+            <input id="mcUsd" type="text" inputmode="decimal" value="100000000" />
+            <span class="inputUnit">USD</span>
+          </div>
+        </div>
+
+        <!-- Switching converts values to preserve implied annual volume. -->
+        <div class="row">
+          <label>Bonding-curve volume mode</label>
+          <select id="volMode">
+            <option value="dailyTurnover">Daily turnover (% of mcap/day)</option>
+            <option value="dailyVolume">Daily volume (USD/day)</option>
+            <option value="annualTurnover">Annual turnover (× mcap/yr)</option>
+          </select>
+        </div>
+
+        <div class="rowStack" id="volumeRows">
+          <!-- DailyVolUSD = CurrentMCUSD · (dailyTurnover%/100). AnnualTurnover = (dailyTurnover%/100)·365. -->
+          <div class="row" id="dailyTurnoverRow">
+            <label>Daily turnover (% of mcap)</label>
+            <input id="dailyTurnover" type="text" inputmode="decimal" value="3" />
+          </div>
+
+          <!-- AnnualVolumeUSD = DailyVolumeUSD · 365. -->
+          <div class="row is-hidden" id="dailyRow">
+            <label>Daily volume (USD/day)</label>
+            <input id="dailyVol" type="text" inputmode="decimal" value="0" />
+          </div>
+
+          <!-- AnnualVolumeUSD = CurrentMCUSD · turnover. -->
+          <div class="row is-hidden" id="turnoverRow">
+            <label>Annual turnover (× mcap/yr)</label>
+            <input id="turnover" type="text" inputmode="decimal" value="0" />
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Net interest paid</label>
+          <input id="refRate" type="text" inputmode="decimal" value="5" />
+        </div>
+
+        <div class="row">
+          <label>POLAR market cap</label>
+          <div class="inputUnitWrap">
+            <input id="polarMcapUsd" type="text" inputmode="decimal" value="150000000" />
+            <span class="inputUnit">USD</span>
+          </div>
+        </div>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:750">Enable conversions</div>
+            <!-- Adds conversion gains and rebates as a second revenue stream. -->
+          </div>
+          <label class="switch">
+            <input id="convOn" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:750">Advanced parameters</div>
+            <!-- Premine, α/β, burn ratio, LTV, fee, ETHUSD, and split parameters. -->
+          </div>
+          <label class="switch">
+            <input id="adv" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="advancedBlock" style="display:none">
+          <h3 style="margin:10px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Yield Split</h3>
+
+          <!-- Fraction of borrower interest allocated to pUSD holders (pool assumed = debt). -->
+          <div class="row">
+            <label>Interest split to pUSD holders (primaryShare)</label>
+            <input id="primaryShare" type="text" inputmode="decimal" value="0.40" />
+          </div>
+
+          <!-- Fraction of borrower interest allocated to pETH stakers (APR shown on collateral value). -->
+          <div class="row">
+            <label>Interest split to pETH stakers (secondaryShare)</label>
+            <input id="secondaryShare" type="text" inputmode="decimal" value="0.60" />
+          </div>
+
+          <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Staking Assumptions</h3>
+
+          <div class="row">
+            <label>pETH staked (% of circulating)</label>
+            <input id="pethStakedPct" type="text" inputmode="decimal" value="50" />
+          </div>
+
+          <div class="row">
+            <label>pUSD staked (% of supply)</label>
+            <input id="pusdStakedPct" type="text" inputmode="decimal" value="50" />
+          </div>
+
+          <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Conversions</h3>
+
+          <!-- Inflation rate: i = nu / theta (per year). -->
+          <div class="row">
+            <label>Half-life<span class="hint">Converted to ν per year</span></label>
+            <div class="inputUnitWrap">
+              <input id="nu" type="text" inputmode="decimal" value="21" />
+              <span class="inputUnit">days</span>
+            </div>
+          </div>
+
+          <!-- Spike factor in the auction dynamics. -->
+          <div class="row">
+            <label>Spike θ (dimensionless)</label>
+            <input id="theta" type="text" inputmode="decimal" value="200" />
+          </div>
+
+          <!-- Fraction of released ETH rebated. -->
+          <div class="row">
+            <label>Rebate share φ (fraction of released ETH rebated)</label>
+            <input id="phi" type="text" inputmode="decimal" value="0.00" />
+          </div>
+
+          <!-- Needed to compute inflation. -->
+          <div class="row">
+            <label>Current POLAR supply<span class="hint">Used to infer POLAR price from market cap</span></label>
+            <input id="polarSupply" type="text" inputmode="decimal" value="100000000" />
+          </div>
+
+          <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Curve & Price</h3>
+
+          <!-- Converts ETH-denominated values to USD. -->
+          <div class="row">
+            <label>ETH price</label>
+            <div class="inputUnitWrap">
+              <input id="ethUsd" type="text" inputmode="decimal" value="3000" />
+              <span class="inputUnit">USD</span>
+            </div>
+          </div>
+
+          <!-- Fixes α so that P0 holds at premine scale. -->
+          <div class="row">
+            <label>Bootstrap market cap (ETH)</label>
+            <input id="premineEth" type="text" inputmode="decimal" value="3000" />
+          </div>
+
+          <!-- Price: P(Q)=α·Q^β. -->
+          <div class="row">
+            <label>Bonding curve exponent β</label>
+            <input id="beta" type="text" inputmode="decimal" value="0.30" />
+          </div>
+
+          <!-- Used with premine to determine α. -->
+          <div class="row">
+            <label>Initial price P<sub>0</sub> (ETH per pETH)</label>
+            <input id="p0" type="text" inputmode="decimal" value="1.00" />
+          </div>
+
+          <!-- Default 0.20. Everything not burned is treated as staked. -->
+          <div class="row">
+            <label>Burned supply ratio (Q<sub>B</sub>/Q<sub>T</sub>)</label>
+            <input id="burnRatio" type="text" inputmode="decimal" value="0.20" />
+          </div>
+
+          <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Risk & Fees</h3>
+
+          <!-- Default 0.50. Debt = LTV × staked value. -->
+          <div class="row">
+            <label>Borrow LTV against staked pETH</label>
+            <input id="ltv" type="text" inputmode="decimal" value="0.50" />
+          </div>
+
+          <!-- Annual fees = annual volume × fee. -->
+          <div class="row">
+            <label>Swap fee rate (%)</label>
+            <input id="fee" type="text" inputmode="decimal" value="0.30" />
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="card">
+        <div class="cardHead">
+          <h2>Position</h2>
+          <div class="segmented" role="tablist" aria-label="View mode">
+            <input id="viewCdp" type="checkbox" checked />
+            <button type="button" class="segBtn" id="viewFlowBtn" aria-pressed="false">Flow view</button>
+            <button type="button" class="segBtn active" id="viewCdpBtn" aria-pressed="true">Position view</button>
+          </div>
+        </div>
+
+        <div id="flowWrap" style="display:none">
+          <div class="flowGraph" id="flowGraph">
+          <svg class="flowSvg" id="flowSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+
+          <div class="flowGrid">
+            <!-- Top row (outputs) -->
+            <div class="node" id="nodeCtApr" style="grid-column:1; grid-row:1;">
+              <div class="nt">pETH collateral</div>
+              <div class="nv" id="flowCtApr">—</div>
+              <div class="ns" id="flowCtAprSub">—</div>
+            </div>
+
+            <div class="node" id="nodePusdApr" style="grid-column:3; grid-row:1;">
+              <div class="nt">Stability Pool (pUSD)</div>
+              <div class="nv" id="flowPusdApr">—</div>
+              <div class="ns" id="flowPusdAprSub">—</div>
+            </div>
+
+            <!-- Middle row (borrower rate; two inputs in) -->
+            <div class="node emph" id="nodeBorrowRate" style="grid-column:2; grid-row:2;">
+              <div class="nt">Borrower</div>
+              <div class="nv" id="flowBorrowRate">—</div>
+              <div class="ns" id="flowBorrowRateSub" style="white-space:pre-line">incentive + interest</div>
+            </div>
+
+            <!-- Bottom row (fees) -->
+            <div class="node" id="nodeConv" style="grid-column:3; grid-row:3;">
+              <div class="nt">Polar conversion gains</div>
+              <div class="nv" id="flowConv">—</div>
+              <div class="ns" id="flowConvSub">ΔR × (1 − φ)</div>
+            </div>
+
+            <div class="node" id="nodeFees" style="grid-column:2; grid-row:3;">
+              <div class="nt">Swap fees</div>
+              <div class="nv" id="flowFees">—</div>
+              <div class="ns" id="flowFeesSub">volume × fee</div>
+            </div>
+          </div>
+
+          </div>
+        </div>
+
+        <div id="cdpWrap">
+          <div class="cdpPanel">
+            <div class="cdpInputs">
+            <div class="row">
+                <label>Deposit<span class="hint">pETH collateral</span></label>
+                <div class="inputMeta">
+                  <div class="inputUnitWrap">
+                    <input id="cdpCollateral" type="text" inputmode="decimal" value="2.5" />
+                    <span class="inputUnit">pETH</span>
+                  </div>
+                  <div class="metaCol">
+                    <div class="metaVal" id="cdpCollateralUsd">—</div>
+                  </div>
+                </div>
+              </div>
+            <div class="row">
+                <label>Borrow<span class="hint" id="cdpDebtHint">pUSD debt gets incentive</span></label>
+                <div class="inputMeta">
+                  <div class="inputUnitWrap">
+                    <input id="cdpDebt" type="text" inputmode="decimal" value="8000" />
+                    <span class="inputUnit">pUSD</span>
+                  </div>
+                  <div class="metaCol">
+                    <div class="metaVal" id="cdpDebtUsd">—</div>
+                  </div>
+                </div>
+              </div>
+              <div class="cdpDivider"></div>
+            <div class="row">
+                <label>Stability Pool (pUSD)<span class="hint">Earns pUSD yield</span></label>
+                <div class="inputMeta">
+                  <div class="inputUnitWrap">
+                    <input id="cdpPusd" type="text" inputmode="decimal" value="0" />
+                    <span class="inputUnit">pUSD</span>
+                  </div>
+                  <div class="metaCol">
+                    <div class="metaVal" id="cdpPusdUsd">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="cdpGrid">
+              <div class="node emph">
+                <div class="nt">Net position size</div>
+                <div class="nv" id="cdpNetPosition">—</div>
+                <div class="ns" id="cdpNetPositionSub">collateral + pUSD − debt</div>
+              </div>
+              <div class="node" id="cdpNetYieldNode">
+                <div class="nt">Net position yield</div>
+                <div class="nv" id="cdpNetUsd">—</div>
+                <div class="ns" id="cdpNetSub">—</div>
+              </div>
+              <div class="node" id="cdpLtvNode">
+                <div class="nt">Position LTV</div>
+                <div class="nv" id="cdpLtv">—</div>
+                <div class="ns" id="cdpLtvSub">—</div>
+              </div>
+              <div class="node" id="cdpPethYieldNode">
+                <div class="nt">pETH yield</div>
+                <div class="nv" id="cdpPethYield">—</div>
+                <div class="ns" id="cdpPethYieldSub">—</div>
+              </div>
+              <div class="node" id="cdpPusdYieldNode">
+                <div class="nt">pUSD yield</div>
+                <div class="nv" id="cdpPusdYield">—</div>
+                <div class="ns" id="cdpPusdYieldSub">—</div>
+              </div>
+              <div class="node warn" id="cdpInterestNode">
+                <div class="nt" id="cdpInterestTitle">Interest & incentive</div>
+                <div class="nv" id="cdpInterestUsd">—</div>
+                <div class="ns multiline" id="cdpInterestSub">net rate on debt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <details class="metricGroup" style="margin-top:14px">
+          <summary>Metrics</summary>
+
+          <details class="metricGroup" open>
+            <summary>Key metrics</summary>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="t">Current pETH price</div>
+                <div class="v" id="kpiPrice">—</div>
+                <div class="s" id="kpiPriceSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Multiple</div>
+                <div class="v" id="kpiMultiple">—</div>
+                <div class="s" id="kpiMultipleSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">pUSD supply</div>
+                <div class="v" id="kpiStable">—</div>
+                <div class="s" id="kpiStableSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">POLAR inflation rate</div>
+                <div class="v" id="kpiPolarInfl">—</div>
+                <div class="s" id="kpiPolarInflSub">—</div>
+              </div>
+            </div>
+          </details>
+
+          <details class="metricGroup" open>
+            <summary>Curve plot</summary>
+            <div class="plotWrap">
+              <canvas id="curve" width="900" height="330"></canvas>
+              <div class="plotLegend">
+                <span class="sw"><span class="box" style="background:rgba(255, 99, 132, .55)"></span>debt</span>
+                <span class="sw"><span class="box" style="background:rgba(99, 132, 255, .45)"></span>overcollateralization</span>
+                <span class="sw"><span class="box" style="background:rgba(220,220,220,.35)"></span>burned</span>
+              </div>
+            </div>
+          </details>
+
+          <details class="metricGroup" open>
+            <summary>Metric list</summary>
+            <div class="metricGroups">
+            <details class="metricGroup" open>
+              <summary>Bonding Curve</summary>
+              <table class="table">
+                <tbody>
+                  <tr><td>pETH market cap</td><td id="mcUsdOut">—</td></tr>
+                  <tr><td>Reserve R</td><td id="rStar">—</td></tr>
+                  <tr><td>Reserve factor</td><td id="reserveFrac">—</td></tr>
+                  <tr><td>Burned supply Q<sub>B</sub></td><td id="qb">—</td></tr>
+                  <tr><td>Market price P<sub>edge</sub></td><td id="pEdge">—</td></tr>
+                  <tr><td>Floor price </td><td id="pFloor">—</td></tr>
+                  <tr><td>Floor ratio (P<sub>floor</sub>/P<sub>edge</sub>)</td><td id="pFloorRatio">—</td></tr>
+                  <tr><td>ETH released from burns</td><td id="released">—</td></tr>
+                  <tr><td>Trading volume (USD/year)</td><td id="volUsd">—</td></tr>
+                  <tr><td>Fee revenue (USD/year)</td><td id="feesUsd">—</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <details class="metricGroup" open>
+              <summary>Stablecoin</summary>
+              <table class="table">
+                <tbody>
+                  <tr><td>Stablecoin issued</td><td id="qs">—</td></tr>
+                  <tr><td>Stablecoin APR (pUSD holders)</td><td id="pusdAprRow">—</td></tr>
+                  <tr><td id="debtAprLabel">Debt Incentive APR</td><td id="debtAprRow">—</td></tr>
+                  <tr><td id="borrowRateLabel">Net borrow rate</td><td id="borrowRateRow">—</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <details class="metricGroup" open>
+              <summary>pETH</summary>
+              <table class="table">
+                <tbody>
+                  <tr><td>pETH in circulation</td><td id="pEthCirc">—</td></tr>
+                  <tr><td>pETH price</td><td id="pEthPriceEth">—</td></tr>
+                  <tr><td>pETH stakers APR</td><td id="ctAprRow">—</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <details class="metricGroup" open>
+              <summary>POLAR Token</summary>
+              <table class="table">
+                <tbody>
+                  <tr><td>POLAR price</td><td id="polarUsdOut">—</td></tr>
+                  <tr><td>POLAR supply</td><td id="polarSupplyOut">—</td></tr>
+                  <tr><td>POLAR market cap</td><td id="polarMcapUsdOut">—</td></tr>
+                  <tr><td>POLAR minted (POLAR/year)</td><td id="polarMinted">—</td></tr>
+                  <tr><td>POLAR inflation rate (%/year)</td><td id="polarInfl">—</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <details class="metricGroup" open>
+              <summary>Conversions</summary>
+              <table class="table">
+                <tbody>
+                  <tr><td>Auction price P<sub>auc</sub> (pETH/POLAR)</td><td id="pAuc">—</td></tr>
+                  <tr><td>Burn throughput</td><td id="convPeth">—</td></tr>
+                  <tr><td>Released ETH from conversions</td><td id="convReleased">—</td></tr>
+                  <tr><td>Conversion gains</td><td id="convNonrebated">—</td></tr>
+                  <tr><td>Rebate paid (USD/year)</td><td id="convRebate">—</td></tr>
+                </tbody>
+              </table>
+            </details>
+            </div>
+          </details>
+        </details>
+
+        <details>
+          <summary>Math behind the dashboard</summary>
+
+          <div class="eq">
+            <div class="mono"><b>Scope</b></div>
+            <div class="mono">This dashboard provides a high-level yield estimate based on the current snapshot, annualized.</div>
+            <div class="mono">It doesn’t model mint/redemption or liquidation effects; use the Python simulation for full dynamics.</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>Bonding curve</b></div>
+            <div class="mono">P(Q) = α · Q<sup>β</sup>   (ETH per pETH)</div>
+            <div class="mono">R(Q1→Q2) = ∫ αx<sup>β</sup>dx = α/(β+1) · (Q2<sup>β+1</sup> − Q1<sup>β+1</sup>)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>1) Premine fixes α</b></div>
+            <div class="mono">PremineETH = input</div>
+            <div class="mono">Q0 = PremineETH / P0</div>
+            <div class="mono">α = P0 / Q0<sup>β</sup></div>
+          </div>
+
+          <div class="eq">
+          <div class="mono"><b>2) Current market cap ⇒ current Q<sub>T</sub> and price</b></div>
+          <div class="mono">CurrentMCEth = CurrentMCUSD / ETHUSD</div>
+          <div class="mono">Approx: CurrentMCEth ≈ (Q<sub>T</sub> − Q<sub>B</sub>)·P(Q<sub>T</sub>) = (1 − burnRatio)·α·Q<sub>T</sub><sup>β+1</sup></div>
+          <div class="mono">Q<sub>T</sub> = (CurrentMCEth/((1 − burnRatio)·α))<sup>1/(β+1)</sup>, P<sub>spot</sub>=P(Q<sub>T</sub>)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>3) Burn + stake split</b></div>
+            <div class="mono">Q<sub>B</sub> = burnRatio · Q<sub>T</sub></div>
+            <div class="mono">Q<sub>staked</sub> = (1 − burnRatio) · Q<sub>T</sub></div>
+            <div class="mono">P<sub>floor</sub> = P(Q<sub>B</sub>)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>4) Reserve slice and already-released ETH</b></div>
+            <div class="mono">ReleasedETH = R(0→Q<sub>B</sub>)</div>
+            <div class="mono">R* = R(Q<sub>B</sub>→Q<sub>T</sub>)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>5) Debt (stablecoin issued) from LTV</b></div>
+            <div class="mono">CollateralETH = Q<sub>staked</sub> · P<sub>spot</sub></div>
+            <div class="mono">DebtETH = LTV · CollateralETH</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>6) Fees + conversion gains and debt incentive APR</b></div>
+            <div class="mono">AnnualVolUSD from your selected volume mode</div>
+            <div class="mono">AnnualFeesUSD = AnnualVolUSD · fee</div>
+            <div class="mono">Half-life input: ν = ln(2)/(t<sub>1/2</sub>/365)</div>
+            <div class="mono">i = ν/θ</div>
+            <div class="mono">ΔQ<sub>POLAR,yr</sub> = i · Q<sub>POLAR</sub></div>
+            <div class="mono">POLARUSD = POLAR mcap / POLAR supply</div>
+            <div class="mono">P<sub>mkt</sub> (pETH/POLAR) = POLARUSD / (P<sub>edge</sub> · ETHUSD)</div>
+            <div class="mono">Solve P<sub>auc</sub> from: P<sub>mkt</sub> = P<sub>auc</sub> − (φ/P<sub>edge</sub>) · α/(β+1) · [(Q<sub>B</sub>+P<sub>auc</sub>)<sup>β+1</sup> − Q<sub>B</sub><sup>β+1</sup>]</div>
+            <div class="mono">ΔQ<sub>B,yr</sub> = P<sub>auc</sub> · ΔQ<sub>POLAR,yr</sub></div>
+            <div class="mono">ΔR<sub>yr</sub> = α/(β+1) · [(Q<sub>B</sub>+ΔQ<sub>B,yr</sub>)<sup>β+1</sup> − Q<sub>B</sub><sup>β+1</sup>]</div>
+            <div class="mono">ΔR<sub>nonrebated,yr</sub> = (1 − φ) · ΔR<sub>yr</sub></div>
+            <div class="mono">APR<sub>pETH</sub> = ΔR<sub>nonrebated,yr</sub> / ((Q<sub>T</sub> − Q<sub>B</sub>) · P<sub>edge</sub>)</div>
+            <div class="mono">ConvGainsUSD = ΔR<sub>nonrebated,yr</sub> · ETHUSD</div>
+            <div class="mono">RebateUSD = φ · ΔR<sub>yr</sub> · ETHUSD</div>
+            <div class="mono">Inflation = ΔQ<sub>POLAR,yr</sub> / Q<sub>POLAR</sub></div>
+            <div class="mono">DebtIncentiveAPR = (AnnualFeesUSD + ConvGainsUSD) / DebtUSD</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>7) Borrower rates</b></div>
+            <div class="mono">BorrowerRate = NetInterestPaid + DebtIncentiveAPR</div>
+            <div class="mono">NetBorrowRate = BorrowerRate − DebtIncentiveAPR</div>
+            <div class="mono">NetBorrowRate = NetInterestPaid</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>8) Yield APRs</b></div>
+            <div class="mono">BorrowerInterestUSD/year = BorrowerRate · DebtUSD</div>
+            <div class="mono">pUSD APR = primaryShare · BorrowerRate</div>
+            <div class="mono">pETH APR = secondaryShare · BorrowerRate · LTV</div>
+            <div class="mono">Displayed APRs assume only a fraction is staked:</div>
+            <div class="mono">pUSD APR<sub>staked</sub> = pUSD APR / (pUSD staked %)</div>
+            <div class="mono">pETH APR<sub>staked</sub> = pETH APR / (pETH staked %)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>Plot shading</b></div>
+            <div class="mono">We find Q<sub>cover</sub> such that R(Q<sub>B</sub>→Q<sub>cover</sub>) = DebtETH.</div>
+          </div>
+        </details>
+
+      </section>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // -------- parsing + formatting --------
+  function stripSeparators(s){
+    s = String(s ?? '');
+    let out = '';
+    for(let i=0;i<s.length;i++){
+      const c = s[i];
+      if(c === "'" || c === ',' || c === '_' || c === '%') continue;
+      if(c <= ' ') continue;
+      out += c;
+    }
+    return out;
+  }
+
+  function num(v){
+    const x = Number(stripSeparators(v));
+    return Number.isFinite(x) ? x : 0;
+  }
+
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+  function formatApos(n, dec=0){
+    if(!Number.isFinite(n)) return '';
+    const fixed = n.toFixed(dec);
+    const parts = fixed.split('.');
+    let intp = parts[0];
+    const frac = parts[1];
+
+    let sign = '';
+    if(intp.startsWith('-')) { sign='-'; intp=intp.slice(1); }
+
+    let out = '';
+    let k = 0;
+    for(let i=intp.length-1;i>=0;i--){
+      out = intp[i] + out;
+      k++;
+      if(k === 3 && i !== 0){ out = "'" + out; k = 0; }
+    }
+    return sign + out + (frac ? '.' + frac : '');
+  }
+
+  function formatAposTrim(n, dec=0){
+    if(!Number.isFinite(n)) return '';
+    let fixed = n.toFixed(dec);
+    if(dec > 0) fixed = fixed.replace(/\.?0+$/, '');
+    const parts = fixed.split('.');
+    let intp = parts[0];
+    const frac = parts[1];
+
+    let sign = '';
+    if(intp.startsWith('-')) { sign='-'; intp=intp.slice(1); }
+
+    let out = '';
+    let k = 0;
+    for(let i=intp.length-1;i>=0;i--){
+      out = intp[i] + out;
+      k++;
+      if(k === 3 && i !== 0){ out = "'" + out; k = 0; }
+    }
+    return sign + out + (frac ? '.' + frac : '');
+  }
+
+  function fmt(x, d=2){
+    if(!Number.isFinite(x)) return '—';
+    if(Math.abs(x) >= 1e12) return (x/1e12).toFixed(2)+'T';
+    if(Math.abs(x) >= 1e9) return (x/1e9).toFixed(2)+'B';
+    if(Math.abs(x) >= 1e6) return (x/1e6).toFixed(2)+'M';
+    if(Math.abs(x) >= 1e3) return (x/1e3).toFixed(2)+'k';
+    return x.toFixed(d);
+  }
+  function fmtUSD(x){ return '$' + fmt(x, 2); }
+  function fmtETH(x){ return fmt(x, 4) + ' ETH'; }
+  function fmtETH2(x){ return fmt(x, 2) + ' ETH'; }
+  function fmtpETH(x){ return fmt(x, 4) + ' pETH'; }
+  function pct(x){ return (Number.isFinite(x) ? (x*100).toFixed(2) : '0.00') + '%'; }
+
+  function setText(id, value){
+    const el = $(id);
+    if(el) el.textContent = value;
+  }
+
+  const FORMAT_SPEC = {
+    mcUsd: { dec: 0 },
+    dailyTurnover: { dec: 2, suffix: '%' },
+    dailyVol: { dec: 0 },
+    turnover: { dec: 4 },
+    nu: { dec: 1 },
+    theta: { dec: 2 },
+    phi: { dec: 3 },
+    polarMcapUsd: { dec: 0 },
+    polarSupply: { dec: 0 },
+    cdpCollateral: { dec: 4, trim: true },
+    cdpDebt: { dec: 2, trim: true },
+    cdpPusd: { dec: 2, trim: true },
+
+    // advanced
+    ethUsd: { dec: 0 },
+    premineEth: { dec: 6 },
+    beta: { dec: 2 },
+    p0: { dec: 4 },
+    burnRatio: { dec: 2 },
+    ltv: { dec: 2 },
+    fee: { dec: 2, suffix: '%' },
+    refRate: { dec: 2, suffix: '%' },
+    primaryShare: { dec: 2 },
+    secondaryShare: { dec: 2 },
+    pethStakedPct: { dec: 1, suffix: '%' },
+    pusdStakedPct: { dec: 1, suffix: '%' },
+  };
+
+  function formatField(id){
+    const el = $(id);
+    if(!el) return;
+    const spec = FORMAT_SPEC[id];
+    if(!spec) return;
+    const raw = num(el.value);
+    const base = spec.trim ? formatAposTrim(raw, spec.dec) : formatApos(raw, spec.dec);
+    el.value = base + (spec.suffix || '');
+  }
+
+  function attachPrettyNumberInput(id){
+    const el = $(id);
+    if(!el) return;
+    const spec = FORMAT_SPEC[id];
+    if(!spec) return;
+
+    el.addEventListener('focus', () => {
+      let v = String(el.value ?? '');
+      if(spec.suffix && v.trim().endsWith(spec.suffix)){
+        v = v.trim().slice(0, -spec.suffix.length);
+      }
+      el.value = stripSeparators(v);
+    });
+
+    el.addEventListener('blur', () => {
+      formatField(id);
+      recalc();
+    });
+  }
+
+  function formatAllInputs(){
+    Object.keys(FORMAT_SPEC).forEach(formatField);
+  }
+
+  // -------- math helpers --------
+  function price(alpha, beta, q){
+    if(q <= 0) return 0;
+    return alpha * Math.pow(q, beta);
+  }
+  function reserveSlice(alpha, beta, q1, q2){
+    if(q2 <= q1) return 0;
+    return (alpha/(beta+1)) * (Math.pow(q2, beta+1) - Math.pow(q1, beta+1));
+  }
+
+  // -------- conversions helper --------
+  function solvePinnedPrice({marketPrice, alpha, beta, QB, pEdge, rebateShare}){
+    if(!(marketPrice > 0)) return 0;
+    if(!(alpha > 0) || !(pEdge > 0) || beta < 0) return marketPrice;
+    if(!(rebateShare > 0)) return marketPrice;
+
+    const pow = beta + 1;
+    const qbPow = Math.pow(QB, pow);
+    const coeff = (rebateShare / pEdge) * (alpha / (beta + 1));
+    if(!(coeff > 0)) return marketPrice;
+
+    const f = (x) => x - coeff * (Math.pow(QB + x, pow) - qbPow) - marketPrice;
+
+    let lo = 0;
+    let hi = Math.max(marketPrice, 1e-12);
+    let fhi = f(hi);
+    let guard = 0;
+    while(fhi < 0 && hi < 1e18 && guard < 80){
+      hi *= 2;
+      fhi = f(hi);
+      guard++;
+    }
+    if(!Number.isFinite(fhi)) return marketPrice;
+    if(fhi < 0) return hi;
+
+    for(let i=0;i<80;i++){
+      const mid = 0.5 * (lo + hi);
+      const fm = f(mid);
+      if(fm >= 0){ hi = mid; } else { lo = mid; }
+    }
+    return hi;
+  }
+
+  function calcConversions({convOn, nu, theta, rebateShare, polarUsd, polarSupply, ETHUSD, alpha, beta, QB, QT, pEdge}){
+    const iYear = (theta > 0 && nu > 0) ? (nu / theta) : 0;
+    const active = convOn && Number.isFinite(iYear) && iYear > 0;
+
+    const pEthUsd = (pEdge > 0) ? (pEdge * ETHUSD) : 0;
+    const marketPrice = (pEthUsd > 0) ? Math.max(0, polarUsd) / pEthUsd : 0; // pETH per POLAR
+    const pinnedPrice = solvePinnedPrice({
+      marketPrice,
+      alpha,
+      beta,
+      QB,
+      pEdge,
+      rebateShare
+    });
+
+    const polarMintedYear = active ? (iYear * Math.max(0, polarSupply)) : 0;
+    const pEthBurnYear = active ? (pinnedPrice * polarMintedYear) : 0; // ΔQ_B,yr
+
+    const releasedEthYear = (active && alpha > 0)
+      ? reserveSlice(alpha, beta, QB, QB + pEthBurnYear)
+      : 0;
+
+    const rebateEthYear = rebateShare * releasedEthYear;
+    const nonrebatedEthYear = (1 - rebateShare) * releasedEthYear;
+
+    const pEthBurnUsdYear = pEthBurnYear * pEthUsd;
+    const releasedUsdYear = releasedEthYear * ETHUSD;
+    const rebateUsdYear = rebateEthYear * ETHUSD;
+    const nonrebatedUsdYear = nonrebatedEthYear * ETHUSD;
+
+    const denom = (QT - QB) * pEdge;
+    const aprPeth = (denom > 0) ? (nonrebatedEthYear / denom) : 0;
+
+    const polarInflation = (polarSupply > 0) ? (polarMintedYear / polarSupply) : null;
+
+    return {
+      iYear,
+      marketPrice,
+      pinnedPrice,
+      pEthBurnYear,
+      pEthBurnUsdYear,
+      releasedEthYear,
+      releasedUsdYear,
+      rebateEthYear,
+      rebateUsdYear,
+      nonrebatedEthYear,
+      nonrebatedUsdYear,
+      polarMintedYear,
+      polarInflation,
+      aprPeth,
+    };
+  }
+
+  // -------- flow arrows (SVG) --------
+  function drawFlowArrows(){
+    const host = $('flowGraph');
+    const svg = $('flowSvg');
+    if(!host || !svg) return;
+    if(host.offsetParent === null) return;
+
+    const nodes = {
+      fees: $('nodeFees'),
+      conv: $('nodeConv'),
+      borrower: $('nodeBorrowRate'),
+      ct: $('nodeCtApr'),
+      pusd: $('nodePusdApr'),
+    };
+    for(const k in nodes){ if(!nodes[k]) return; }
+
+    const hb = host.getBoundingClientRect();
+    const W = hb.width, H = hb.height;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    function midLeft(el){ const b = el.getBoundingClientRect(); return {x:(b.left-hb.left), y:(b.top-hb.top)+b.height/2}; }
+    function midRight(el){ const b = el.getBoundingClientRect(); return {x:(b.right-hb.left), y:(b.top-hb.top)+b.height/2}; }
+    function midTop(el){ const b = el.getBoundingClientRect(); return {x:(b.left-hb.left)+b.width/2, y:(b.top-hb.top)}; }
+    function midBottom(el){ const b = el.getBoundingClientRect(); return {x:(b.left-hb.left)+b.width/2, y:(b.bottom-hb.top)}; }
+
+    const ARROW_PAD = 12;
+
+    function trimSegment(a, b, {start=0, end=0} = {}){
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if(len <= start + end || len === 0) return {a, b};
+      const ux = dx / len;
+      const uy = dy / len;
+      return {
+        a: {x: a.x + ux * start, y: a.y + uy * start},
+        b: {x: b.x - ux * end, y: b.y - uy * end},
+      };
+    }
+
+    function curvePath(a, b){
+      const dx = (b.x - a.x);
+      const dy = (b.y - a.y);
+      const c1 = {x: a.x + 0.35*dx, y: a.y + 0.10*dy};
+      const c2 = {x: b.x - 0.35*dx, y: b.y - 0.10*dy};
+      return `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`;
+    }
+    function linePath(a, b){
+      return `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+    }
+    // arcs lifted upward for same-row arrows so they don't hide behind nodes
+    function curvePathArc(a, b, lift=-30){
+      const dx = (b.x - a.x);
+      const c1 = {x: a.x + 0.35*dx, y: a.y - lift};
+      const c2 = {x: b.x - 0.35*dx, y: b.y - lift};
+      return `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`;
+    }
+    // enter target side at right angle with a gentle lift near the source
+    function curvePathSide(a, b, {lift=26, inset=120} = {}){
+      const dir = (b.x >= a.x) ? 1 : -1;
+      const c1 = {x: a.x, y: a.y - lift};
+      const c2 = {x: b.x - dir*inset, y: b.y};
+      return `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`;
+    }
+
+    const defs = `
+      <defs>
+        <marker id="arrow" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L12,6 L0,12 Z" fill="rgba(233,236,255,.9)" />
+        </marker>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+    `;
+
+    const segs = [];
+    // conversions -> borrower
+    {
+      const a = midTop(nodes.conv);
+      const b = midBottom(nodes.borrower);
+      const t = trimSegment(a, b, {end: ARROW_PAD});
+      segs.push({d: curvePathSide(t.a, t.b, {lift:22, inset:22}), stroke:'rgba(120,155,255,.55)', w:2.8});
+    }
+    // fees -> borrower (straight, offset for visibility)
+    {
+      const feesTop = midTop(nodes.fees);
+      const borrowerBottom = midBottom(nodes.borrower);
+      feesTop.x -= 18;
+      borrowerBottom.x -= 18;
+      const t = trimSegment(feesTop, borrowerBottom, {end: ARROW_PAD});
+      segs.push({d: linePath(t.a, t.b), stroke:'rgba(233,236,255,.92)', w:4, glow:false, cap:'butt'});
+    }
+    // borrower -> ct (enter from right side)
+    {
+      const a = midTop(nodes.borrower);
+      const b = midRight(nodes.ct);
+      const t = trimSegment(a, b, {end: ARROW_PAD});
+      segs.push({d: curvePathSide(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
+    }
+    // borrower -> pusd (enter from left side)
+    {
+      const a = midTop(nodes.borrower);
+      const b = midLeft(nodes.pusd);
+      const t = trimSegment(a, b, {end: ARROW_PAD});
+      segs.push({d: curvePathSide(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
+    }
+
+    const body = segs.map(s => {
+      const glow = (s.glow === false) ? '' : ' filter="url(#glow)"';
+      const cap = s.cap || 'round';
+      return `<path d="${s.d}" fill="none" stroke="${s.stroke}" stroke-width="${s.w || 2}" stroke-linecap="${cap}" stroke-linejoin="round" marker-end="url(#arrow)" vector-effect="non-scaling-stroke"${glow} />`;
+    }).join('');
+    svg.innerHTML = defs + body;
+  }
+
+  // -------- plot --------
+  function drawPlot({alpha,beta,QT,QB,Qcover, pFloor, pSpot}){
+    const canvas = $('curve');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const cssW = canvas.clientWidth || canvas.width;
+    const cssH = canvas.clientHeight || canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    if(canvas.width !== Math.round(cssW*dpr) || canvas.height !== Math.round(cssH*dpr)){
+      canvas.width = Math.round(cssW*dpr);
+      canvas.height = Math.round(cssH*dpr);
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    const W = cssW, H = cssH;
+    ctx.clearRect(0,0,W,H);
+
+    const padL=54, padR=16, padT=14, padB=40;
+    const xMax = Math.max(1e-12, QT * 1.06);
+    const yMax = Math.max(1e-12, (pSpot || price(alpha,beta,QT)) * 1.25);
+
+    const xTo = (x) => padL + (x / xMax) * (W - padL - padR);
+    const yTo = (y) => (H - padB) - (y / yMax) * (H - padT - padB);
+
+    // Axes
+    ctx.strokeStyle = 'rgba(255,255,255,.14)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, H-padB);
+    ctx.lineTo(W-padR, H-padB);
+    ctx.stroke();
+
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    for(let i=1;i<=4;i++){
+      const y = padT + i*(H-padT-padB)/5;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    }
+
+    const N = 320;
+    const pts = [];
+    for(let i=0;i<=N;i++){
+      const q = (xMax * i) / N;
+      const p = price(alpha,beta,q);
+      pts.push([xTo(q), yTo(p), q, p]);
+    }
+
+    function fillUnder(qA, qB, fillStyle){
+      if(qB <= qA) return;
+      const iA = Math.max(0, Math.floor((qA/xMax)*N));
+      const iB = Math.min(N, Math.ceil((qB/xMax)*N));
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath();
+      ctx.moveTo(xTo(qA), yTo(0));
+      ctx.lineTo(xTo(qA), yTo(price(alpha,beta,qA)));
+      for(let i=iA;i<=iB;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.lineTo(xTo(qB), yTo(price(alpha,beta,qB)));
+      ctx.lineTo(xTo(qB), yTo(0));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // shading
+    fillUnder(0, QB, 'rgba(220,220,220,.18)');
+    fillUnder(QB, Qcover, 'rgba(255, 99, 132, .45)');
+    fillUnder(Qcover, QT, 'rgba(99, 132, 255, .35)');
+
+    // curve
+    ctx.strokeStyle = 'rgba(233,236,255,.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+
+    // burned segment highlight
+    ctx.strokeStyle = 'rgba(220,220,220,.65)';
+    ctx.lineWidth = 2.3;
+    ctx.beginPath();
+    const iBurn = Math.min(N, Math.ceil((QB/xMax)*N));
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<=iBurn;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+
+    function vline(q, color){
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(xTo(q), padT);
+      ctx.lineTo(xTo(q), H-padB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function hline(p, color){
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, yTo(p));
+      ctx.lineTo(W-padR, yTo(p));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const Pfloor = (pFloor ?? price(alpha,beta,QB));
+    const Pspot  = (pSpot ?? price(alpha,beta,QT));
+
+    vline(QB, 'rgba(220,220,220,.55)');
+    vline(Qcover, 'rgba(255, 99, 132, .55)');
+    vline(QT, 'rgba(233,236,255,.35)');
+
+    hline(Pfloor, 'rgba(220,220,220,.55)');
+    hline(Pspot, 'rgba(233,236,255,.35)');
+
+    function dot(q,p,color){
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(xTo(q), yTo(p), 3.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    dot(QB, Pfloor, 'rgba(220,220,220,.9)');
+    dot(QT, Pspot, 'rgba(233,236,255,.9)');
+
+    // axis labels
+    ctx.fillStyle = 'rgba(170,179,208,.9)';
+    ctx.font = '12px ui-sans-serif, system-ui';
+    ctx.fillText('Q (pETH supply)', Math.max(padL, W*0.40), H-10);
+
+    // ticks
+    function tickX(q, label){
+      const x = xTo(q);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, H-padB);
+      ctx.lineTo(x, H-padB+6);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(170,179,208,.9)';
+      ctx.font = '11px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, H-padB+20);
+      ctx.textAlign = 'left';
+    }
+    function tickY(p, label){
+      const y = yTo(p);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL-6, y);
+      ctx.lineTo(padL, y);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(170,179,208,.9)';
+      ctx.font = '11px ui-sans-serif, system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText(label, padL-8, y+4);
+      ctx.textAlign = 'left';
+    }
+
+    function fmtAxisVal(v){
+      if(!Number.isFinite(v)) return '';
+      const s = v.toFixed(2);
+      return s.replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
+    }
+
+    tickX(QB, `burned (${Math.round((QB/Math.max(QT,1e-9))*100)}%)`);
+    tickX(QT, fmt(QT,2));
+    tickY(Pfloor, fmtAxisVal(Pfloor));
+    tickY(Pspot, fmtAxisVal(Pspot));
+
+    ctx.fillStyle = 'rgba(233,236,255,.85)';
+    ctx.font = '11px ui-sans-serif, system-ui';
+    ctx.fillText('market price', xTo(QT)-70, yTo(Pspot)-10);
+    ctx.fillStyle = 'rgba(220,220,220,.85)';
+    ctx.fillText('floor price', xTo(QB)-70, yTo(Pfloor)-10);
+  }
+
+  // -------- volume mode conversions --------
+  function syncVolumeOnModeChange(){
+    const mcUSD = Math.max(0, num($('mcUsd').value));
+    const from = syncVolumeOnModeChange._prevMode || 'dailyTurnover';
+    const to = $('volMode').value;
+
+    let annual = 0;
+    if(from === 'dailyVolume'){
+      annual = Math.max(0, num($('dailyVol').value)) * 365;
+    } else if(from === 'annualTurnover'){
+      annual = mcUSD * Math.max(0, num($('turnover').value));
+    } else {
+      const dtPct = Math.max(0, num($('dailyTurnover').value));
+      annual = (mcUSD * (dtPct/100)) * 365;
+    }
+
+    if(to === 'dailyVolume'){
+      $('dailyVol').value = String(annual/365);
+    } else if(to === 'annualTurnover'){
+      $('turnover').value = String(mcUSD > 0 ? annual/mcUSD : 0);
+    } else {
+      const d = annual/365;
+      $('dailyTurnover').value = String(mcUSD > 0 ? (d/mcUSD)*100 : 0);
+    }
+
+    syncVolumeOnModeChange._prevMode = to;
+    formatAllInputs();
+    recalc();
+  }
+
+  function syncViewMode(){
+    const viewCdp = $('viewCdp');
+    const flowWrap = $('flowWrap');
+    const cdpWrap = $('cdpWrap');
+    if(!viewCdp || !flowWrap || !cdpWrap) return;
+    const showCdp = viewCdp.checked;
+    flowWrap.style.display = showCdp ? 'none' : 'block';
+    cdpWrap.style.display = showCdp ? 'block' : 'none';
+    if(!showCdp) requestAnimationFrame(drawFlowArrows);
+    syncViewButtons();
+  }
+
+  function syncViewButtons(){
+    const viewCdp = $('viewCdp');
+    const flowBtn = $('viewFlowBtn');
+    const cdpBtn = $('viewCdpBtn');
+    if(!viewCdp || !flowBtn || !cdpBtn) return;
+    const showCdp = viewCdp.checked;
+    flowBtn.classList.toggle('active', !showCdp);
+    cdpBtn.classList.toggle('active', showCdp);
+    flowBtn.setAttribute('aria-pressed', String(!showCdp));
+    cdpBtn.setAttribute('aria-pressed', String(showCdp));
+  }
+
+  // -------- main calc --------
+  function setRowVisible(el, show){
+    if(!el) return;
+    el.classList.toggle('is-hidden', !show);
+    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function recalc(){
+    const mcUSD = Math.max(0, num($('mcUsd').value));
+
+    const adv = $('adv').checked;
+
+    const ETHUSD = Math.max(1e-9, num($('ethUsd').value));
+    const premineETH = Math.max(0, num($('premineEth').value));
+    const beta = Math.max(0, num($('beta').value));
+    const p0 = Math.max(1e-12, num($('p0').value));
+    const burnRatio = clamp01(num($('burnRatio').value));
+    const ltv = clamp01(num($('ltv').value));
+
+    const feeRate = clamp01(num($('fee').value) / 100);
+    const refRate = num($('refRate').value) / 100;
+
+    const primaryShare = Math.max(0, num($('primaryShare').value));
+    const secondaryShare = Math.max(0, num($('secondaryShare').value));
+    const pethStakedFrac = clamp01(num($('pethStakedPct').value) / 100);
+    const pusdStakedFrac = clamp01(num($('pusdStakedPct').value) / 100);
+
+    const convOn = $('convOn').checked;
+    const halfLifeDays = Math.max(0, num($('nu').value));
+    const nu = (halfLifeDays > 0) ? (Math.log(2) / (halfLifeDays / 365)) : 0;
+    const theta = Math.max(1e-9, num($('theta').value));
+    const rebateShare = clamp01(num($('phi').value));
+    const polarMcapUsd = Math.max(0, num($('polarMcapUsd').value));
+    const polarSupply = Math.max(0, num($('polarSupply').value));
+    const polarUsd = (polarSupply > 0) ? (polarMcapUsd / polarSupply) : 0;
+    const cdpCollateral = Math.max(0, num($('cdpCollateral').value));
+    const cdpDebt = Math.max(0, num($('cdpDebt').value));
+    const cdpPusd = Math.max(0, num($('cdpPusd').value));
+
+    // volume
+    const mode = $('volMode').value;
+    let turnover = Math.max(0, num($('turnover').value));
+    let dailyVolUSD = Math.max(0, num($('dailyVol').value));
+    let dailyTurnoverPct = Math.max(0, num($('dailyTurnover').value));
+
+    let annualVolUSD = 0;
+    if(mode === 'dailyVolume'){
+      annualVolUSD = dailyVolUSD * 365;
+      turnover = (mcUSD > 0) ? (annualVolUSD / mcUSD) : 0;
+      dailyTurnoverPct = (mcUSD > 0) ? ((dailyVolUSD / mcUSD) * 100) : 0;
+    } else if(mode === 'annualTurnover'){
+      annualVolUSD = mcUSD * turnover;
+      dailyVolUSD = annualVolUSD / 365;
+      dailyTurnoverPct = (mcUSD > 0) ? ((dailyVolUSD / mcUSD) * 100) : 0;
+    } else {
+      dailyVolUSD = mcUSD * (dailyTurnoverPct / 100);
+      annualVolUSD = dailyVolUSD * 365;
+      turnover = (mcUSD > 0) ? (annualVolUSD / mcUSD) : 0;
+    }
+
+    const feesUSD = annualVolUSD * feeRate;
+
+    // premine fixes alpha
+    const Q0 = premineETH / p0;
+    const alpha = (beta === 0) ? p0 : (Q0 > 0 ? (p0 / Math.pow(Q0, beta)) : 0);
+
+    // MC -> QT (MC ≈ (QT - QB) * P(QT))
+    const mcETH = mcUSD / ETHUSD;
+    const circFactor = Math.max(0, 1 - burnRatio);
+    const QT = (alpha > 0 && (beta + 1) > 0 && circFactor > 0)
+      ? Math.pow(mcETH / (alpha * circFactor), 1/(beta+1))
+      : 0;
+    const pSpot = (QT > 0) ? price(alpha, beta, QT) : 0;
+
+    // burn/stake split
+    const QB = burnRatio * QT;
+    const Qstaked = (1 - burnRatio) * QT;
+    const pFloor = (QB > 0) ? price(alpha, beta, QB) : 0;
+    const pEthCirc = Math.max(0, QT - QB);
+    const pEthPriceUsd = pSpot * ETHUSD;
+    const reserveFrac = (QT > 0 && (beta + 1) > 0)
+      ? Math.max(0, Math.min(1, 1 - Math.pow(QB / QT, beta + 1)))
+      : 0;
+
+    // reserves
+    const releasedETH = reserveSlice(alpha,beta,0,QB);
+    const rStarETH = reserveSlice(alpha,beta,QB,QT);
+
+    // debt from ltv
+    const collETH = Qstaked * pSpot;
+    const collUSD = collETH * ETHUSD;
+    const debtETH = ltv * collETH;
+    const debtUSD = debtETH * ETHUSD;
+
+    const convMetrics = calcConversions({
+      convOn,
+      nu,
+      theta,
+      rebateShare,
+      polarUsd,
+      polarSupply,
+      ETHUSD,
+      alpha,
+      beta,
+      QB,
+      QT,
+      pEdge: pSpot
+    });
+
+    const convVolUsdYear = convMetrics.pEthBurnUsdYear;
+    const convPethYear = convMetrics.pEthBurnYear;
+    const convReleasedEthYear = convMetrics.releasedEthYear;
+    const convReleasedUsdYear = convMetrics.releasedUsdYear;
+    const convNonrebatedEthYear = convMetrics.nonrebatedEthYear;
+    const convNonrebatedUsdYear = convMetrics.nonrebatedUsdYear;
+    const rebateUsdYear = convMetrics.rebateUsdYear;
+    const polarMintedYear = convMetrics.polarMintedYear;
+    const polarInflation = convMetrics.polarInflation;
+    const pMkt = convMetrics.marketPrice;
+    const pAuc = convMetrics.pinnedPrice;
+    const aprConv = convMetrics.aprPeth;
+    const polarMcapPeth = polarSupply * pMkt;
+
+    const totalIncentiveUSD = feesUSD + convNonrebatedUsdYear;
+
+    // incentive APR from fees + conversions (used in split mode)
+    const incentiveApr = (debtUSD > 0) ? (totalIncentiveUSD / debtUSD) : 0;
+
+    const borrowerRate = refRate + incentiveApr;
+    const primaryBorrowerApr = primaryShare * borrowerRate;
+    const secondaryBorrowerApr = secondaryShare * borrowerRate;
+    const pusdApr = primaryBorrowerApr;               // pool≈debt
+    const ctApr = secondaryBorrowerApr * ltv;         // derived
+    const netBorrowRate = borrowerRate - incentiveApr;
+    const pusdAprStaked = (pusdStakedFrac > 0) ? (pusdApr / pusdStakedFrac) : 0;
+    const ctAprStaked = (pethStakedFrac > 0) ? (ctApr / pethStakedFrac) : 0;
+
+    // CDP position view
+    const cdpCollateralEth = cdpCollateral * pSpot;
+    const cdpCollateralUsd = cdpCollateralEth * ETHUSD;
+    const cdpLtv = (cdpCollateralUsd > 0) ? (cdpDebt / cdpCollateralUsd) : (cdpDebt > 0 ? NaN : 0);
+    const cdpInterestNetUsd = cdpDebt * netBorrowRate;
+    const cdpInterestGrossUsd = cdpDebt * borrowerRate;
+    const cdpIncentiveUsd = cdpDebt * incentiveApr;
+    const netInterestSign = cdpInterestNetUsd > 0 ? '-' : cdpInterestNetUsd < 0 ? '+' : '';
+    const cdpPethYieldUsd = cdpCollateralUsd * ctAprStaked;
+    const cdpPusdYieldUsd = cdpPusd * pusdAprStaked;
+    const cdpNetUsd = cdpPethYieldUsd + cdpPusdYieldUsd - cdpInterestNetUsd;
+    const cdpNetPositionUsd = cdpCollateralUsd + cdpPusd - cdpDebt;
+    const cdpNetYieldPct = (cdpNetPositionUsd !== 0) ? (cdpNetUsd / cdpNetPositionUsd) : 0;
+
+    // cover slice
+    let Qcover = QB;
+    if(alpha > 0 && beta + 1 > 0){
+      const term = Math.pow(QB, beta+1) + ((beta+1) * debtETH) / alpha;
+      Qcover = Math.pow(Math.max(QB, term), 1/(beta+1));
+      if(Qcover > QT) Qcover = QT;
+    }
+    const debtAreaETH = reserveSlice(alpha,beta,QB,Qcover);
+    const overETH = Math.max(0, rStarETH - debtAreaETH);
+
+    // ---- render ----
+    $('advancedBlock').style.display = adv ? 'block' : 'none';
+
+    setRowVisible($('turnoverRow'), mode === 'annualTurnover');
+    setRowVisible($('dailyRow'), mode === 'dailyVolume');
+    setRowVisible($('dailyTurnoverRow'), mode === 'dailyTurnover');
+
+    // keep non-active fields updated without fighting typing (only set if not focused)
+    const active = document.activeElement;
+    if(mode !== 'annualTurnover' && active !== $('turnover')) $('turnover').value = String(turnover);
+    if(mode !== 'dailyVolume' && active !== $('dailyVol')) $('dailyVol').value = String(dailyVolUSD);
+    if(mode !== 'dailyTurnover' && active !== $('dailyTurnover')) $('dailyTurnover').value = String(dailyTurnoverPct);
+
+    // KPIs
+    setText('debtAprLabel', 'Debt incentive APR');
+    setText('borrowRateLabel', 'Net interest paid');
+    setText('debtAprRow', pct(incentiveApr));
+    setText('borrowRateRow', pct(netBorrowRate));
+
+    setText('rStar', `${fmtETH(rStarETH)}  (${fmtUSD(rStarETH*ETHUSD)})`);
+
+    setText('qs', `${fmt(debtUSD)}`);
+
+    // Table
+    setText('volUsd', fmtUSD(annualVolUSD));
+    setText('feesUsd', fmtUSD(feesUSD));
+    setText('pMkt', fmt(pMkt, 6));
+    setText('pAuc', fmt(pAuc, 6));
+    setText('polarUsdOut', `${fmtUSD(polarUsd)} (${fmt(pMkt, 6)} pETH)`);
+    setText('polarSupplyOut', fmt(polarSupply, 0));
+    setText('polarMcapUsdOut', `${fmtUSD(polarMcapUsd)} (${fmt(polarMcapPeth, 2)} pETH)`);
+    setText('polarMcapPeth', fmt(polarMcapPeth, 2) + ' pETH');
+    setText('convPeth', `${fmt(convPethYear, 2)} pETH (${fmtUSD(convVolUsdYear)}/yr)`);
+    setText('convVolUsd', fmtUSD(convVolUsdYear));
+    setText('convReleased', fmtETH(convReleasedEthYear) + `  (${fmtUSD(convReleasedUsdYear)})`);
+    setText('convNonrebated', fmtETH(convNonrebatedEthYear) + `  (${fmtUSD(convNonrebatedUsdYear)}/yr)`);
+    setText('convToDebt', fmtUSD(convNonrebatedUsdYear));
+    setText('convRebate', fmtUSD(rebateUsdYear));
+    setText('aprConv', pct(aprConv));
+    setText('polarMinted', fmt(polarMintedYear, 2));
+    setText('polarInfl', (polarInflation === null) ? '—' : pct(polarInflation));
+    setText('pusdAprRow', pct(pusdAprStaked));
+    setText('ctAprRow', pct(ctAprStaked));
+
+    setText('cdpDebtHint', 'pUSD debt');
+    setText('cdpInterestTitle', 'Net interest on debt');
+
+    setText('cdpNetPosition', fmtUSD(cdpNetPositionUsd));
+    setText('cdpNetPositionSub', 'collateral + pUSD − debt');
+    setText('cdpNetUsd', `${fmtUSD(cdpNetUsd)}/yr`);
+    setText('cdpNetSub', `${pct(cdpNetYieldPct)} of net position`);
+    setText('cdpInterestUsd', `${netInterestSign}${fmtUSD(Math.abs(cdpInterestNetUsd))}/yr net`);
+    setText('cdpInterestSub', `-${fmtUSD(cdpInterestGrossUsd)}/yr interest paid\n+${fmtUSD(cdpIncentiveUsd)}/yr incentive`);
+    setText('cdpPethYield', `${fmtUSD(cdpPethYieldUsd)}/yr`);
+    setText('cdpPethYieldSub', `${pct(ctAprStaked)} on collateral`);
+    setText('cdpPusdYield', `${fmtUSD(cdpPusdYieldUsd)}/yr`);
+    setText('cdpPusdYieldSub', `${pct(pusdAprStaked)} on pUSD`);
+    setText('cdpLtv', Number.isFinite(cdpLtv) ? pct(cdpLtv) : 'NaN');
+    setText('cdpLtvSub', `collateral ${fmtUSD(cdpCollateralUsd)}`);
+    setText('cdpCollateralUsd', `${fmtUSD(cdpCollateralUsd)} (${fmtETH2(cdpCollateralEth)})`);
+    setText('cdpDebtUsd', fmtUSD(cdpDebt));
+    setText('cdpPusdUsd', fmtUSD(cdpPusd));
+
+    const cdpInterestNode = $('cdpInterestNode');
+    if(cdpInterestNode){
+      cdpInterestNode.classList.remove('good','warn','emph');
+      if(netBorrowRate < 0){
+        cdpInterestNode.classList.add('good');
+      } else if(netBorrowRate > 0){
+        cdpInterestNode.classList.add('warn');
+      } else {
+        cdpInterestNode.classList.add('emph');
+      }
+    }
+
+    const ltvNode = $('cdpLtvNode');
+    if(ltvNode){
+      ltvNode.classList.remove('good','warn','bad');
+      if(!Number.isFinite(cdpLtv) && cdpDebt > 0){
+        ltvNode.classList.add('bad');
+      } else if(cdpLtv >= 1){
+        ltvNode.classList.add('bad');
+      } else if(cdpLtv >= 0.8){
+        ltvNode.classList.add('warn');
+      } else {
+        ltvNode.classList.add('good');
+      }
+    }
+
+    setText('qb', fmtpETH(QB,2));
+    setText('qStaked', fmt(Qstaked,2));
+    setText('pEdge', fmtETH(pSpot, 6));
+    setText('pFloor', fmtETH(pFloor, 6));
+    const floorRatio = (pSpot > 0) ? (pFloor / pSpot) : 0;
+    setText('pFloorRatio', fmt(floorRatio, 3));
+    setText('released', fmtETH(releasedETH) + `  (${fmtUSD(releasedETH*ETHUSD)})`);
+    setText('over', fmtETH(overETH) + `  (${fmtUSD(overETH*ETHUSD)})`);
+    setText('mcUsdOut', `${fmtUSD(mcUSD)} (${fmtETH(mcETH)})`);
+    setText('mcEthOut', fmtETH(mcETH));
+    setText('reserveFrac', fmt(reserveFrac, 2));
+    setText('pEthCirc', fmt(pEthCirc, 2) + ' pETH');
+    setText('pEthPriceEth', `${fmtETH(pSpot, 6)} (${fmtUSD(pEthPriceUsd)})`);
+    setText('pEthPriceUsd', fmtUSD(pEthPriceUsd));
+
+    // Key metrics block
+    setText('kpiPrice', fmt(pSpot, 2) + ' ETH');
+    setText('kpiPriceSub', fmtUSD(pEthPriceUsd));
+    const bootstrapMultiple = (p0 > 0) ? (pSpot / p0) : 0;
+    setText('kpiMultiple', '× ' + fmt(bootstrapMultiple, 2));
+    setText('kpiMultipleSub', `since bootstrap`);
+    setText('kpiStable', fmtUSD(debtUSD));
+    setText('kpiStableSub', ` `);
+    setText('kpiPolarInfl', (polarInflation === null) ? '—' : pct(polarInflation));
+    setText('kpiPolarInflSub', `per year`);
+
+    // Flow view boxes
+    setText('flowFees', fmtUSD(feesUSD));
+    setText('flowFeesSub', 'per year');
+
+    setText('flowConv', fmtUSD(convNonrebatedUsdYear));
+    setText('flowConvSub', 'per year');
+
+    setText('flowBorrowRate', pct(netBorrowRate));
+    setText('flowBorrowRateSub', `${pct(borrowerRate)} interest paid\n${pct(incentiveApr)} incentive`);
+
+    const borrowerNode = $('nodeBorrowRate');
+    if(borrowerNode){
+      borrowerNode.classList.remove('good','warn','emph');
+      if(netBorrowRate < 0){
+        borrowerNode.classList.add('good');
+      } else if(netBorrowRate > 0){
+        borrowerNode.classList.add('warn');
+      } else {
+        borrowerNode.classList.add('emph');
+      }
+    }
+
+    setText('flowCtApr', pct(ctAprStaked));
+    setText('flowCtAprSub', `APR`);
+
+    setText('flowPusdApr', pct(pusdAprStaked));
+    setText('flowPusdAprSub', `APR`);
+
+    const cdpNetYieldNode = $('cdpNetYieldNode');
+    if(cdpNetYieldNode){
+      cdpNetYieldNode.classList.remove('good','warn','bad');
+      if(cdpNetUsd > 0){
+        cdpNetYieldNode.classList.add('good');
+      } else if(cdpNetUsd < 0){
+        cdpNetYieldNode.classList.add('bad');
+      }
+    }
+
+    const cdpPethYieldNode = $('cdpPethYieldNode');
+    if(cdpPethYieldNode){
+      cdpPethYieldNode.classList.remove('good');
+      if(cdpPethYieldUsd > 0) cdpPethYieldNode.classList.add('good');
+    }
+
+    const cdpPusdYieldNode = $('cdpPusdYieldNode');
+    if(cdpPusdYieldNode){
+      cdpPusdYieldNode.classList.remove('good');
+      if(cdpPusdYieldUsd > 0) cdpPusdYieldNode.classList.add('good');
+    }
+
+    const flowCtNode = $('nodeCtApr');
+    if(flowCtNode){
+      flowCtNode.classList.remove('good');
+      if(ctAprStaked > 0) flowCtNode.classList.add('good');
+    }
+
+    const flowPusdNode = $('nodePusdApr');
+    if(flowPusdNode){
+      flowPusdNode.classList.remove('good');
+      if(pusdAprStaked > 0) flowPusdNode.classList.add('good');
+    }
+
+
+    // Plot + arrows
+    drawPlot({alpha,beta,QT,QB,Qcover, pFloor, pSpot});
+    requestAnimationFrame(drawFlowArrows);
+  }
+
+  // -------- init + events --------
+  function bindRecalc(id){
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', () => recalc());
+    el.addEventListener('change', () => recalc());
+  }
+
+  function runConversionAsserts(){
+    const base = {
+      convOn: true,
+      nu: 1,
+      theta: 1,
+      rebateShare: 0.5,
+      polarUsd: 1,
+      polarSupply: 100,
+      ETHUSD: 1,
+      alpha: 1,
+      beta: 0,
+      QB: 0,
+      QT: 100,
+      pEdge: 1,
+    };
+
+    let r = calcConversions({...base, convOn:false});
+    console.assert(Math.abs(r.pEthBurnYear) < 1e-9, 'Conversion off should zero out pETH burn.');
+
+    r = calcConversions({...base, rebateShare:1});
+    console.assert(Math.abs(r.nonrebatedUsdYear) < 1e-9, 'rebate=1 should send 0 to nonrebated.');
+
+    r = calcConversions({...base});
+    const expectedMintedYear = base.polarSupply; // iYear=1
+    const expectedInfl = expectedMintedYear / base.polarSupply;
+    const expectedPinned = 2; // P_mkt=1, phi=0.5, beta=0, QB=0 => P_auc=2
+    const expectedBurnYear = expectedPinned * expectedMintedYear;
+    const expectedRelease = expectedBurnYear; // alpha=1, beta=0
+    const expectedNonrebated = expectedRelease * (1 - base.rebateShare);
+    console.assert(Math.abs(r.polarMintedYear - expectedMintedYear) < 1e-6, 'POLAR minted calculation');
+    console.assert(Math.abs((r.polarInflation ?? 0) - expectedInfl) < 1e-9, 'POLAR inflation calculation');
+    console.assert(Math.abs(r.pinnedPrice - expectedPinned) < 1e-6, 'Pinned auction price');
+    console.assert(Math.abs(r.pEthBurnYear - expectedBurnYear) < 1e-6, 'pETH burn calculation');
+    console.assert(Math.abs(r.releasedEthYear - expectedRelease) < 1e-6, 'Released ETH calculation');
+    console.assert(Math.abs(r.nonrebatedEthYear - expectedNonrebated) < 1e-6, 'Nonrebated ETH calculation');
+  }
+
+  // bind all fields
+  [
+    'mcUsd','volMode','dailyTurnover','dailyVol','turnover',
+    'convOn','nu','theta','phi','polarMcapUsd','polarSupply',
+    'cdpCollateral','cdpDebt','cdpPusd',
+    'adv','ethUsd','premineEth','beta','p0','burnRatio','ltv','fee',
+    'refRate','primaryShare','secondaryShare',
+    'pethStakedPct','pusdStakedPct'
+  ].forEach(bindRecalc);
+
+  // pretty formatting (only on blur)
+  Object.keys(FORMAT_SPEC).forEach(id => attachPrettyNumberInput(id));
+
+  // mode switching conversion
+  const volModeEl = $('volMode');
+  if(volModeEl){
+    volModeEl.value = 'dailyTurnover';
+    syncVolumeOnModeChange._prevMode = 'dailyTurnover';
+    volModeEl.addEventListener('change', syncVolumeOnModeChange);
+  }
+
+  // advanced toggle show/hide
+  $('adv').addEventListener('change', () => {
+    $('advancedBlock').style.display = $('adv').checked ? 'block' : 'none';
+    recalc();
+    requestAnimationFrame(drawFlowArrows);
+  });
+
+  const viewCdpEl = $('viewCdp');
+  const viewFlowBtn = $('viewFlowBtn');
+  const viewCdpBtn = $('viewCdpBtn');
+  if(viewCdpEl){
+    viewCdpEl.addEventListener('change', syncViewMode);
+  }
+  if(viewFlowBtn && viewCdpEl){
+    viewFlowBtn.addEventListener('click', () => {
+      viewCdpEl.checked = false;
+      syncViewMode();
+    });
+  }
+  if(viewCdpBtn && viewCdpEl){
+    viewCdpBtn.addEventListener('click', () => {
+      viewCdpEl.checked = true;
+      syncViewMode();
+    });
+  }
+
+  runConversionAsserts();
+
+  // initial
+  formatAllInputs();
+  recalc();
+  syncViewMode();
+
+  window.addEventListener('resize', () => { recalc(); requestAnimationFrame(drawFlowArrows); });
+</script>
+</body>
+</html>

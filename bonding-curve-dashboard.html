@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polaris Bonding Curve</title>
+  <style>
+    :root { --bg:#0b1020; --muted:#aab3d0; --text:#e9ecff; --line:rgba(255,255,255,.08); }
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 800px at 20% -10%, rgba(86,116,255,.35), transparent 55%), radial-gradient(900px 700px at 110% 10%, rgba(87,239,196,.25), transparent 50%), var(--bg); color:var(--text);} 
+    .wrap{max-width:1120px;margin:28px auto;padding:0 16px;}
+    header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    h1{font-size:20px;margin:0;letter-spacing:.2px}
+    .grid{display:grid;grid-template-columns: 380px 1fr; gap:14px;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.35);} 
+    .card h2{margin:0 0 10px 0; font-size:13px; letter-spacing:.3px; text-transform:uppercase; color:#dbe1ff;}
+
+    .row{display:grid;grid-template-columns: 1fr 170px; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line);} 
+    .row:first-of-type{border-top:none;}
+    label{display:block;}
+    .hint{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    input{width:100%; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--text); outline:none;}
+    input:focus{border-color:rgba(120,155,255,.5); box-shadow:0 0 0 4px rgba(120,155,255,.12);} 
+    input[type="range"]{padding:0; height:28px;}
+    button{width:100%; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:rgba(120,155,255,.22); color:var(--text); font-weight:600; cursor:pointer; transition:.15s ease;}
+    button:hover{background:rgba(120,155,255,.32)}
+    button:active{transform:translateY(1px)}
+    .btnRow{display:flex; gap:8px;}
+    .btnRow button{flex:1}
+
+    .kpis{display:grid;grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:12px;}
+    .kpi{padding:14px;border-radius:16px;border:1px solid var(--line); background:rgba(0,0,0,.12);} 
+    .kpi .t{color:var(--muted);font-size:12px}
+    .kpi .v{font-size:20px; margin-top:6px; font-weight:650; letter-spacing:.3px}
+    .kpi .s{color:var(--muted); font-size:12px; margin-top:4px}
+
+    .plotWrap{margin-top:12px;border-radius:16px;border:1px solid var(--line);background:rgba(0,0,0,.10);padding:10px;}
+    canvas{width:100%; height:330px; display:block;}
+    .plotLegend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;color:var(--muted);font-size:12px}
+    .sw{display:inline-flex;align-items:center;gap:6px}
+    .box{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.15)}
+
+    details{margin-top:12px}
+    summary{cursor:pointer;color:#dbe1ff}
+    .eq{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.16);border:1px solid var(--line); margin-top:10px;}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .pill{display:inline-flex;align-items:center;gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.12); color:var(--muted); font-size:12px}
+    .axisToggle{display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:6px 0 0 0;}
+    .axisToggle span{color:var(--muted); font-size:12px}
+    .toggleGroup{display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:rgba(0,0,0,.12)}
+    .toggleBtn{border:0; background:transparent; padding:6px 10px; color:var(--muted); font-size:12px; cursor:pointer;}
+    .toggleBtn.active{background:rgba(120,155,255,.28); color:var(--text)}
+
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr;} .kpis{grid-template-columns:1fr;} }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Polaris Bonding Curve</h1>
+      </div>
+      <div class="pill">v0.9.1</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inputs</h2>
+
+        <details>
+          <summary>Advanced parameters</summary>
+          <div class="row">
+            <label>Bootstrap market cap (ETH)</label>
+            <input id="premineEth" type="text" inputmode="decimal" value="3000" />
+          </div>
+
+          <div class="row">
+            <label>Initial price P<sub>0</sub> (ETH per pETH)</label>
+            <input id="p0" type="text" inputmode="decimal" value="1.00" />
+          </div>
+
+          <div class="row">
+            <label>Bonding curve exponent β</label>
+            <input id="beta" type="text" inputmode="decimal" value="0.30" />
+          </div>
+
+          <div class="row">
+            <label>ETH price (USD)</label>
+            <input id="ethUsd" type="text" inputmode="decimal" value="3000" />
+          </div>
+        </details>
+
+        <h2 style="margin-top:12px">Explore Supply</h2>
+
+        <div class="row">
+          <label>Q<sub>T</sub> (current supply)</label>
+          <input id="qtValue" type="text" inputmode="decimal" value="" />
+        </div>
+
+        <div class="row">
+          <label>Trade size (pETH)</label>
+          <input id="tradeSize" type="text" inputmode="decimal" value="250" />
+        </div>
+        <div class="row">
+          <label>Trade action</label>
+          <div class="btnRow">
+            <button id="tradeBuy" type="button">Buy</button>
+            <button id="tradeSell" type="button">Sell</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Q<sub>B</sub> (burned baseline)</label>
+          <input id="qbValue" type="text" inputmode="decimal" value="" />
+        </div>
+        <div class="row">
+          <label>Q<sub>B</sub> slider</label>
+          <input id="qbRange" type="range" min="0" max="1000" step="1" value="0" />
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Bonding curve</h2>
+        <div class="axisToggle">
+          <span>Y-axis</span>
+          <div class="toggleGroup">
+            <button class="toggleBtn active" type="button" data-unit="eth">ETH</button>
+            <button class="toggleBtn" type="button" data-unit="usd">USD</button>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Market price</div>
+            <div class="v" id="kpiEdge">—</div>
+            <div class="s" id="kpiEdgeSub">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Floor price</div>
+            <div class="v" id="kpiFloor">—</div>
+            <div class="s" id="kpiFloorSub">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Floor ratio</div>
+            <div class="v" id="kpiFloorRatio">—</div>
+            <div class="s" id="kpiFloorRatioSub">P<sub>floor</sub> / P<sub>edge</sub></div>
+          </div>
+          <div class="kpi">
+            <div class="t">Current reserve</div>
+            <div class="v" id="kpiReserve">—</div>
+            <div class="s" id="kpiReserveSub">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Released ETH</div>
+            <div class="v" id="kpiReleased">—</div>
+            <div class="s" id="kpiReleasedSub">—</div>
+          </div>
+        </div>
+
+        <div class="plotWrap">
+          <canvas id="curve" width="900" height="330"></canvas>
+          <div class="plotLegend">
+            <span class="sw"><span class="box" style="background:rgba(220,220,220,.35)"></span>burned (0→Q<sub>B</sub>)</span>
+            <span class="sw"><span class="box" style="background:rgba(99, 132, 255, .35)"></span>active (Q<sub>B</sub>→Q<sub>T</sub>)</span>
+          </div>
+        </div>
+
+        <details>
+          <summary>Math behind the dashboard</summary>
+
+          <div class="eq">
+            <div class="mono"><b>Bonding curve</b></div>
+            <div class="mono">P(Q) = α · Q<sup>β</sup>   (ETH per pETH)</div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>Bootstrap premine fixes α</b></div>
+            <div class="mono">Q<sub>0</sub> = PremineETH / P<sub>0</sub></div>
+            <div class="mono">α = P<sub>0</sub> / Q<sub>0</sub><sup>β</sup></div>
+          </div>
+
+          <div class="eq">
+            <div class="mono"><b>Prices at Q<sub>T</sub> and Q<sub>B</sub></b></div>
+            <div class="mono">P<sub>edge</sub> = P(Q<sub>T</sub>)</div>
+            <div class="mono">P<sub>floor</sub> = P(Q<sub>B</sub>)</div>
+            <div class="mono">Floor ratio = P<sub>floor</sub> / P<sub>edge</sub></div>
+          </div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function stripSeparators(s){
+    s = String(s ?? '');
+    let out = '';
+    for(let i=0;i<s.length;i++){
+      const c = s[i];
+      if(c === "'" || c === ',' || c === '_' || c === '%') continue;
+      if(c <= ' ') continue;
+      out += c;
+    }
+    return out;
+  }
+
+  function num(v){
+    const x = Number(stripSeparators(v));
+    return Number.isFinite(x) ? x : 0;
+  }
+
+  function formatAposTrim(n, dec=0){
+    if(!Number.isFinite(n)) return '';
+    let fixed = n.toFixed(dec);
+    if(dec > 0) fixed = fixed.replace(/\.?0+$/, '');
+    const parts = fixed.split('.');
+    let intp = parts[0];
+    const frac = parts[1];
+
+    let sign = '';
+    if(intp.startsWith('-')) { sign='-'; intp=intp.slice(1); }
+
+    let out = '';
+    let k = 0;
+    for(let i=intp.length-1;i>=0;i--){
+      out = intp[i] + out;
+      k++;
+      if(k === 3 && i !== 0){ out = "'" + out; k = 0; }
+    }
+    return sign + out + (frac ? '.' + frac : '');
+  }
+
+  function fmt(x, d=2){
+    if(!Number.isFinite(x)) return '—';
+    if(Math.abs(x) >= 1e12) return (x/1e12).toFixed(2)+'T';
+    if(Math.abs(x) >= 1e9) return (x/1e9).toFixed(2)+'B';
+    if(Math.abs(x) >= 1e6) return (x/1e6).toFixed(2)+'M';
+    if(Math.abs(x) >= 1e3) return (x/1e3).toFixed(2)+'k';
+    return x.toFixed(d);
+  }
+
+  function price(alpha, beta, q){
+    if(q <= 0) return 0;
+    return alpha * Math.pow(q, beta);
+  }
+
+  function reserveSlice(alpha, beta, q1, q2){
+    if(q2 <= q1) return 0;
+    return (alpha/(beta+1)) * (Math.pow(q2, beta+1) - Math.pow(q1, beta+1));
+  }
+
+  function fmtUSD(x){ return '$' + fmt(x, 2); }
+
+  const axisState = {
+    initialized: false,
+    x: { current: 0, target: 0 },
+    y: { current: 0, target: 0 },
+    animating: false,
+    start: 0,
+    duration: 280,
+    fromX: 0,
+    fromY: 0,
+    toX: 0,
+    toY: 0,
+  };
+
+  let plotState = {
+    alpha: 0,
+    beta: 0,
+    QT: 0,
+    QB: 0,
+    pFloor: 0,
+    pEdge: 0,
+    unitScale: 1,
+    unitLabel: 'ETH',
+  };
+
+  const SLIDER_MIN = 0;
+  const SLIDER_MAX = 1000;
+
+  let axisUnit = 'eth';
+
+  const qtState = {
+    current: 0,
+    target: 0,
+    animating: false,
+    start: 0,
+    duration: 320,
+    from: 0,
+    to: 0,
+  };
+
+  function valueToSlider(value, rangeMax){
+    if(!(rangeMax > 0)) return 0;
+    return Math.round((value / rangeMax) * SLIDER_MAX);
+  }
+
+  function sliderToValue(sliderVal, rangeMax){
+    const v = Number(sliderVal);
+    if(!(rangeMax > 0)) return 0;
+    return (v / SLIDER_MAX) * rangeMax;
+  }
+
+  function niceCeil(v){
+    if(v <= 0) return 0;
+    const exp = Math.pow(10, Math.floor(Math.log10(v)));
+    const frac = v / exp;
+    const nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
+    return nice * exp;
+  }
+
+  function niceFloor(v){
+    if(v <= 0) return 0;
+    const exp = Math.pow(10, Math.floor(Math.log10(v)));
+    const frac = v / exp;
+    const nice = frac >= 10 ? 10 : frac >= 5 ? 5 : frac >= 2 ? 2 : 1;
+    return nice * exp;
+  }
+
+  function setAxisTargets(xTarget, yTarget, immediate){
+    if(!axisState.initialized){
+      axisState.x.current = xTarget;
+      axisState.y.current = yTarget;
+      axisState.x.target = xTarget;
+      axisState.y.target = yTarget;
+      axisState.initialized = true;
+      return;
+    }
+    if(immediate){
+      axisState.x.current = xTarget;
+      axisState.y.current = yTarget;
+      axisState.x.target = xTarget;
+      axisState.y.target = yTarget;
+      axisState.animating = false;
+      return;
+    }
+    axisState.x.target = xTarget;
+    axisState.y.target = yTarget;
+    const dx = Math.abs(axisState.x.current - xTarget);
+    const dy = Math.abs(axisState.y.current - yTarget);
+    if(dx < 1e-6 && dy < 1e-6) return;
+
+    axisState.fromX = axisState.x.current;
+    axisState.fromY = axisState.y.current;
+    axisState.toX = xTarget;
+    axisState.toY = yTarget;
+    axisState.start = performance.now();
+    if(!axisState.animating){
+      axisState.animating = true;
+      requestAnimationFrame(animateAxis);
+    }
+  }
+
+  function animateAxis(now){
+    if(!axisState.animating) return;
+    const t = Math.min(1, (now - axisState.start) / axisState.duration);
+    const ease = 1 - Math.pow(1 - t, 3);
+    axisState.x.current = axisState.fromX + (axisState.toX - axisState.fromX) * ease;
+    axisState.y.current = axisState.fromY + (axisState.toY - axisState.fromY) * ease;
+    render();
+    if(t < 1){
+      requestAnimationFrame(animateAxis);
+    } else {
+      axisState.animating = false;
+      axisState.x.current = axisState.toX;
+      axisState.y.current = axisState.toY;
+      render();
+    }
+  }
+
+  function setQTTarget(nextQT, animate){
+    const clamped = Math.max(0, nextQT);
+    if(!animate || !(qtState.current > 0)){
+      qtState.current = clamped;
+      qtState.target = clamped;
+      qtState.animating = false;
+      return;
+    }
+    qtState.from = qtState.current;
+    qtState.to = clamped;
+    qtState.target = clamped;
+    qtState.start = performance.now();
+    if(!qtState.animating){
+      qtState.animating = true;
+      requestAnimationFrame(animateQT);
+    }
+  }
+
+  function animateQT(now){
+    if(!qtState.animating) return;
+    const t = Math.min(1, (now - qtState.start) / qtState.duration);
+    const ease = 1 - Math.pow(1 - t, 3);
+    qtState.current = qtState.from + (qtState.to - qtState.from) * ease;
+    recalc();
+    if(t < 1){
+      requestAnimationFrame(animateQT);
+    } else {
+      qtState.animating = false;
+      qtState.current = qtState.to;
+      recalc();
+    }
+  }
+
+  function render(){
+    const {alpha,beta,QT,QB,pFloor,pEdge,unitScale,unitLabel} = plotState;
+    drawPlot({
+      alpha,
+      beta,
+      QT,
+      QB,
+      pFloor,
+      pEdge,
+      unitScale,
+      unitLabel,
+      axisMax: axisState.x.current,
+      axisMaxY: axisState.y.current,
+    });
+  }
+
+  function drawPlot({alpha,beta,QT,QB, pFloor, pEdge, unitScale, unitLabel, axisMax, axisMaxY}){
+    const canvas = $('curve');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const cssW = canvas.clientWidth || canvas.width;
+    const cssH = canvas.clientHeight || canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    if(canvas.width !== Math.round(cssW*dpr) || canvas.height !== Math.round(cssH*dpr)){
+      canvas.width = Math.round(cssW*dpr);
+      canvas.height = Math.round(cssH*dpr);
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    const W = cssW, H = cssH;
+    ctx.clearRect(0,0,W,H);
+
+    const padL=54, padR=16, padT=14, padB=40;
+    const xMax = Math.max(1e-12, axisMax);
+    const yMax = Math.max(1e-12, axisMaxY);
+
+    const xTo = (x) => padL + (x / xMax) * (W - padL - padR);
+    const yTo = (y) => (H - padB) - (y / yMax) * (H - padT - padB);
+
+    // axes
+    ctx.strokeStyle = 'rgba(255,255,255,.14)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, H-padB);
+    ctx.lineTo(W-padR, H-padB);
+    ctx.stroke();
+
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    for(let i=1;i<=4;i++){
+      const y = padT + i*(H-padT-padB)/5;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    }
+
+    const N = 320;
+    const pts = [];
+    for(let i=0;i<=N;i++){
+      const q = (xMax * i) / N;
+      const p = price(alpha,beta,q) * unitScale;
+      pts.push([xTo(q), yTo(p), q, p]);
+    }
+
+    function fillUnder(qA, qB, fillStyle){
+      if(qB <= qA) return;
+      const iA = Math.max(0, Math.floor((qA/xMax)*N));
+      const iB = Math.min(N, Math.ceil((qB/xMax)*N));
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath();
+      ctx.moveTo(xTo(qA), yTo(0));
+      ctx.lineTo(xTo(qA), yTo(price(alpha,beta,qA) * unitScale));
+      for(let i=iA;i<=iB;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.lineTo(xTo(qB), yTo(price(alpha,beta,qB) * unitScale));
+      ctx.lineTo(xTo(qB), yTo(0));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // shading
+    fillUnder(0, QB, 'rgba(220,220,220,.18)');
+    fillUnder(QB, QT, 'rgba(99, 132, 255, .35)');
+
+    // curve
+    ctx.strokeStyle = 'rgba(233,236,255,.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+
+    function vline(q, color){
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(xTo(q), padT);
+      ctx.lineTo(xTo(q), H-padB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function hline(p, color){
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, yTo(p));
+      ctx.lineTo(W-padR, yTo(p));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const Pfloor = (pFloor ?? price(alpha,beta,QB));
+    const Pedge  = (pEdge ?? price(alpha,beta,QT));
+    const PfloorPlot = Pfloor * unitScale;
+    const PedgePlot = Pedge * unitScale;
+
+    vline(QB, 'rgba(220,220,220,.55)');
+    vline(QT, 'rgba(233,236,255,.35)');
+
+    hline(PfloorPlot, 'rgba(220,220,220,.55)');
+    hline(PedgePlot, 'rgba(233,236,255,.35)');
+
+    function dot(q,p,color){
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(xTo(q), yTo(p), 3.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    dot(QB, PfloorPlot, 'rgba(220,220,220,.9)');
+    dot(QT, PedgePlot, 'rgba(233,236,255,.9)');
+
+    // axis labels
+    ctx.fillStyle = 'rgba(170,179,208,.9)';
+    ctx.font = '12px ui-sans-serif, system-ui';
+    ctx.fillText('Q (pETH supply)', Math.max(padL, W*0.40), H-10);
+
+    // ticks
+    function tickX(q, label){
+      const x = xTo(q);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, H-padB);
+      ctx.lineTo(x, H-padB+6);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(170,179,208,.9)';
+      ctx.font = '11px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, H-padB+20);
+      ctx.textAlign = 'left';
+    }
+    function tickY(p, label){
+      const y = yTo(p);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL-6, y);
+      ctx.lineTo(padL, y);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(170,179,208,.9)';
+      ctx.font = '11px ui-sans-serif, system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText(label, padL-8, y+4);
+      ctx.textAlign = 'left';
+    }
+
+    tickX(QB, `Q_B ${fmt(QB,2)}`);
+    tickX(QT, `Q_T ${fmt(QT,2)}`);
+    const floorLabel = unitLabel === 'USD' ? ('$' + fmt(PfloorPlot,2)) : (fmt(Pfloor,2) + ' ETH');
+    const edgeLabel = unitLabel === 'USD' ? ('$' + fmt(PedgePlot,2)) : (fmt(Pedge,2) + ' ETH');
+    tickY(PfloorPlot, floorLabel);
+    tickY(PedgePlot, edgeLabel);
+  }
+
+  function recalc(immediateAxis){
+    const premineEth = Math.max(0, num($('premineEth').value));
+    const p0 = Math.max(1e-12, num($('p0').value));
+    const beta = Math.max(0, num($('beta').value));
+    const ethUsd = Math.max(1e-9, num($('ethUsd').value));
+
+    const Q0 = (p0 > 0) ? (premineEth / p0) : 0;
+    const alpha = (beta === 0) ? p0 : (Q0 > 0 ? (p0 / Math.pow(Q0, beta)) : 0);
+
+    const qbRange = $('qbRange');
+
+    let QT = qtState.current;
+    if(!(QT > 0)){
+      QT = Math.max(0, num($('qtValue').value));
+      if(!Number.isFinite(QT) || QT <= 0){ QT = Q0 || 1; }
+      qtState.current = QT;
+      qtState.target = QT;
+    }
+    let QB = Math.max(0, num($('qbValue').value));
+
+    if(!Number.isFinite(QB) || QB < 0){ QB = 0; }
+    if(QB > QT) QB = QT;
+
+    const baseMin = Math.max(Q0 * 2, 1000);
+    let xTarget = axisState.x.target || baseMin;
+    if(xTarget < baseMin) xTarget = baseMin;
+    if(QT > xTarget * 0.9){
+      xTarget = niceCeil(QT / 0.85);
+    } else if(QT < xTarget * 0.35 && xTarget > baseMin){
+      xTarget = Math.max(baseMin, niceFloor(QT / 0.85));
+    }
+
+    const unitScale = axisUnit === 'usd' ? ethUsd : 1;
+    const unitLabel = axisUnit === 'usd' ? 'USD' : 'ETH';
+    const yTarget = Math.max(1e-12, price(alpha, beta, xTarget) * 1.1 * unitScale);
+    setAxisTargets(xTarget, yTarget, immediateAxis);
+
+    const qbMax = Math.max(QT, 1e-9);
+    qbRange.min = String(SLIDER_MIN);
+    qbRange.max = String(SLIDER_MAX);
+    qbRange.step = '1';
+    qbRange.value = String(Math.min(SLIDER_MAX, Math.max(SLIDER_MIN, valueToSlider(QB, qbMax))));
+
+    const active = document.activeElement;
+    if(active !== $('qtValue')) $('qtValue').value = formatAposTrim(QT, 2);
+    if(active !== $('qbValue')) $('qbValue').value = formatAposTrim(QB, 2);
+
+    const pEdge = price(alpha, beta, QT);
+    const pFloor = price(alpha, beta, QB);
+    const floorRatio = (pEdge > 0) ? (pFloor / pEdge) : 0;
+    const reserveEth = reserveSlice(alpha, beta, QB, QT);
+    const releasedEth = reserveSlice(alpha, beta, 0, QB);
+
+    $('kpiEdge').textContent = fmt(pEdge, 4) + ' ETH';
+    $('kpiEdgeSub').textContent = fmtUSD(pEdge * ethUsd);
+    $('kpiFloor').textContent = fmt(pFloor, 4) + ' ETH';
+    $('kpiFloorSub').textContent = fmtUSD(pFloor * ethUsd);
+    $('kpiFloorRatio').textContent = fmt(floorRatio, 3);
+    $('kpiReserve').textContent = fmt(reserveEth, 4) + ' ETH';
+    $('kpiReserveSub').textContent = fmtUSD(reserveEth * ethUsd);
+    $('kpiReleased').textContent = fmt(releasedEth, 4) + ' ETH';
+    $('kpiReleasedSub').textContent = fmtUSD(releasedEth * ethUsd);
+
+    plotState = { alpha, beta, QT, QB, pFloor, pEdge, unitScale, unitLabel };
+    render();
+  }
+
+  function bindQBRange(){
+    const range = $('qbRange');
+    const value = $('qbValue');
+    if(!range || !value) return;
+
+    range.addEventListener('input', () => {
+      const qt = Math.max(0, qtState.current || num($('qtValue').value));
+      const qbVal = sliderToValue(range.value, Math.max(qt, 1e-9));
+      value.value = formatAposTrim(qbVal, 2);
+      recalc();
+    });
+  }
+
+  function bindTradeControls(){
+    const tradeSize = $('tradeSize');
+    const tradeBuy = $('tradeBuy');
+    const tradeSell = $('tradeSell');
+    if(!tradeSize || !tradeBuy || !tradeSell) return;
+
+    tradeBuy.addEventListener('click', () => {
+      const size = Math.max(0, num(tradeSize.value));
+      if(!(size > 0)) return;
+      setQTTarget(qtState.current + size, true);
+      recalc();
+    });
+
+    tradeSell.addEventListener('click', () => {
+      const size = Math.max(0, num(tradeSize.value));
+      if(!(size > 0)) return;
+      const qb = Math.max(0, num($('qbValue').value));
+      const floor = Math.min(qb, qtState.current);
+      setQTTarget(Math.max(floor, qtState.current - size), true);
+      recalc();
+    });
+  }
+
+  ['premineEth','p0','beta','ethUsd'].forEach((id) => {
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', recalc);
+    el.addEventListener('change', recalc);
+  });
+
+  const qtValue = $('qtValue');
+  if(qtValue){
+    qtValue.addEventListener('input', () => {
+      const val = Math.max(0, num(qtValue.value));
+      if(Number.isFinite(val)) setQTTarget(val, false);
+      recalc();
+    });
+    qtValue.addEventListener('change', () => {
+      const val = Math.max(0, num(qtValue.value));
+      if(Number.isFinite(val)) setQTTarget(val, false);
+      recalc();
+    });
+  }
+
+  const qbValue = $('qbValue');
+  if(qbValue){
+    qbValue.addEventListener('input', () => recalc());
+    qbValue.addEventListener('change', () => recalc());
+  }
+
+  bindQBRange();
+  bindTradeControls();
+
+  document.querySelectorAll('[data-unit]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-unit]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      axisUnit = btn.getAttribute('data-unit') || 'eth';
+      recalc(true);
+    });
+  });
+
+  window.addEventListener('resize', () => recalc());
+  recalc();
+</script>
+</body>
+</html>

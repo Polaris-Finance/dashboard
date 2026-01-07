@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polaris Dashboards</title>
+  <style>
+    :root { --bg:#0b1020; --muted:#aab3d0; --text:#e9ecff; --line:rgba(255,255,255,.08); }
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 800px at 20% -10%, rgba(86,116,255,.35), transparent 55%), radial-gradient(900px 700px at 110% 10%, rgba(87,239,196,.25), transparent 50%), var(--bg); color:var(--text);}
+    .wrap{max-width:1120px;margin:28px auto;padding:0 16px;}
+    header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    h1{font-size:20px;margin:0;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:12px}
+    .pill{display:inline-flex;align-items:center;gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.12); color:var(--muted); font-size:12px}
+    .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:0 10px 40px rgba(0,0,0,.35);}
+    .card h2{margin:0 0 10px 0; font-size:13px; letter-spacing:.3px; text-transform:uppercase; color:#dbe1ff;}
+    .card p{margin:0 0 12px 0; color:var(--muted);}
+    .linkBtn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:9px 12px; border-radius:12px; border:1px solid var(--line); background:rgba(120,155,255,.22); color:var(--text); font-weight:600; text-decoration:none; transition:.15s ease;}
+    .linkBtn:hover{background:rgba(120,155,255,.32)}
+    .linkBtn:active{transform:translateY(1px)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Polaris Dashboards</h1>
+        <div class="sub">Shareable links for each dashboard</div>
+      </div>
+      <div class="pill">v0.9.1</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Bonding Curve</h2>
+        <p>Explore supply dynamics, price curve, and floor metrics.</p>
+        <a class="linkBtn" href="bonding-curve-dashboard.html">Open Bonding Curve</a>
+      </section>
+
+      <section class="card">
+        <h2>Yield Dashboard</h2>
+        <p>Model turnover, fees, and scenario outputs for yield.</p>
+        <a class="linkBtn" href="yield-dashboard.html">Open Yield Dashboard</a>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

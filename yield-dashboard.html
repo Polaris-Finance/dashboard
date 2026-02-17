@@ -159,7 +159,7 @@
           <!-- DailyVolUSD = CurrentMCUSD · (dailyTurnover%/100). AnnualTurnover = (dailyTurnover%/100)·365. -->
           <div class="row" id="dailyTurnoverRow">
             <label>Daily turnover (% of mcap)</label>
-            <input id="dailyTurnover" type="text" inputmode="decimal" value="3" />
+            <input id="dailyTurnover" type="text" inputmode="decimal" value="2" />
           </div>
 
           <!-- AnnualVolumeUSD = DailyVolumeUSD · 365. -->
@@ -183,7 +183,7 @@
         <div class="row">
           <label>POLAR market cap</label>
           <div class="inputUnitWrap">
-            <input id="polarMcapUsd" type="text" inputmode="decimal" value="150000000" />
+            <input id="polarMcapUsd" type="text" inputmode="decimal" value="100000000" />
             <span class="inputUnit">USD</span>
           </div>
         </div>
@@ -216,13 +216,19 @@
           <!-- Fraction of borrower interest allocated to pUSD holders (pool assumed = debt). -->
           <div class="row">
             <label>Interest split to pUSD holders (primaryShare)</label>
-            <input id="primaryShare" type="text" inputmode="decimal" value="0.40" />
+            <input id="primaryShare" type="text" inputmode="decimal" value="0.50" />
           </div>
 
           <!-- Fraction of borrower interest allocated to pETH stakers (APR shown on collateral value). -->
           <div class="row">
             <label>Interest split to pETH stakers (secondaryShare)</label>
-            <input id="secondaryShare" type="text" inputmode="decimal" value="0.60" />
+            <input id="secondaryShare" type="text" inputmode="decimal" value="0.20" />
+          </div>
+
+          <!-- Fraction of borrower interest allocated to POLAR stakers. -->
+          <div class="row">
+            <label>Interest split to POLAR stakers (polarShare)</label>
+            <input id="polarShare" type="text" inputmode="decimal" value="0.30" />
           </div>
 
           <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Staking Assumptions</h3>
@@ -234,7 +240,12 @@
 
           <div class="row">
             <label>pUSD staked (% of supply)</label>
-            <input id="pusdStakedPct" type="text" inputmode="decimal" value="50" />
+            <input id="pusdStakedPct" type="text" inputmode="decimal" value="60" />
+          </div>
+
+          <div class="row">
+            <label>POLAR staked (% of supply)</label>
+            <input id="polarStakedPct" type="text" inputmode="decimal" value="80" />
           </div>
 
           <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Conversions</h3>
@@ -323,13 +334,13 @@
         <div class="cardHead">
           <h2>Position</h2>
           <div class="segmented" role="tablist" aria-label="View mode">
-            <input id="viewCdp" type="checkbox" checked />
-            <button type="button" class="segBtn" id="viewFlowBtn" aria-pressed="false">Flow view</button>
-            <button type="button" class="segBtn active" id="viewCdpBtn" aria-pressed="true">Position view</button>
+            <input id="viewCdp" type="checkbox" />
+            <button type="button" class="segBtn active" id="viewFlowBtn" aria-pressed="true">Flow view</button>
+            <button type="button" class="segBtn" id="viewCdpBtn" aria-pressed="false">Position view</button>
           </div>
         </div>
 
-        <div id="flowWrap" style="display:none">
+        <div id="flowWrap">
           <div class="flowGraph" id="flowGraph">
           <svg class="flowSvg" id="flowSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
 
@@ -339,6 +350,12 @@
               <div class="nt">pETH collateral</div>
               <div class="nv" id="flowCtApr">—</div>
               <div class="ns" id="flowCtAprSub">—</div>
+            </div>
+
+            <div class="node" id="nodePolarApr" style="grid-column:2; grid-row:1;">
+              <div class="nt">POLAR stakers</div>
+              <div class="nv" id="flowPolarApr">—</div>
+              <div class="ns" id="flowPolarAprSub">—</div>
             </div>
 
             <div class="node" id="nodePusdApr" style="grid-column:3; grid-row:1;">
@@ -371,7 +388,7 @@
           </div>
         </div>
 
-        <div id="cdpWrap">
+        <div id="cdpWrap" style="display:none">
           <div class="cdpPanel">
             <div class="cdpInputs">
             <div class="row">
@@ -542,6 +559,7 @@
                   <tr><td>POLAR market cap</td><td id="polarMcapUsdOut">—</td></tr>
                   <tr><td>POLAR minted (POLAR/year)</td><td id="polarMinted">—</td></tr>
                   <tr><td>POLAR inflation rate (%/year)</td><td id="polarInfl">—</td></tr>
+                  <tr><td>POLAR staker APR</td><td id="polarAprRow">—</td></tr>
                 </tbody>
               </table>
             </details>
@@ -638,13 +656,16 @@
           </div>
 
           <div class="eq">
-            <div class="mono"><b>8) Yield APRs</b></div>
+            <div class="mono"><b>8) Yield APRs (3-way split)</b></div>
             <div class="mono">BorrowerInterestUSD/year = BorrowerRate · DebtUSD</div>
             <div class="mono">pUSD APR = primaryShare · BorrowerRate</div>
             <div class="mono">pETH APR = secondaryShare · BorrowerRate · LTV</div>
+            <div class="mono">POLAR yield USD = polarShare · BorrowerRate · DebtUSD</div>
+            <div class="mono">POLAR APR = POLAR yield USD / (polarStaked% · POLAR mcap)</div>
             <div class="mono">Displayed APRs assume only a fraction is staked:</div>
             <div class="mono">pUSD APR<sub>staked</sub> = pUSD APR / (pUSD staked %)</div>
             <div class="mono">pETH APR<sub>staked</sub> = pETH APR / (pETH staked %)</div>
+            <div class="mono">POLAR APR<sub>staked</sub> = POLAR yield / (POLAR staked % · POLAR mcap)</div>
           </div>
 
           <div class="eq">
@@ -767,6 +788,8 @@
     secondaryShare: { dec: 2 },
     pethStakedPct: { dec: 1, suffix: '%' },
     pusdStakedPct: { dec: 1, suffix: '%' },
+    polarStakedPct: { dec: 1, suffix: '%' },
+    polarShare: { dec: 2 },
   };
 
   function formatField(id){
@@ -911,6 +934,7 @@
       conv: $('nodeConv'),
       borrower: $('nodeBorrowRate'),
       ct: $('nodeCtApr'),
+      polar: $('nodePolarApr'),
       pusd: $('nodePusdApr'),
     };
     for(const k in nodes){ if(!nodes[k]) return; }
@@ -999,6 +1023,15 @@
       const b = midRight(nodes.ct);
       const t = trimSegment(a, b, {end: ARROW_PAD});
       segs.push({d: curvePathSide(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
+    }
+    // borrower -> polar (straight up, offset right to avoid fees arrow)
+    {
+      const a = midTop(nodes.borrower);
+      const b = midBottom(nodes.polar);
+      a.x += 18;
+      b.x += 18;
+      const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
+      segs.push({d: linePath(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
     }
     // borrower -> pusd (enter from left side)
     {
@@ -1274,8 +1307,10 @@
 
     const primaryShare = Math.max(0, num($('primaryShare').value));
     const secondaryShare = Math.max(0, num($('secondaryShare').value));
+    const polarShare = Math.max(0, num($('polarShare').value));
     const pethStakedFrac = clamp01(num($('pethStakedPct').value) / 100);
     const pusdStakedFrac = clamp01(num($('pusdStakedPct').value) / 100);
+    const polarStakedFrac = clamp01(num($('polarStakedPct').value) / 100);
 
     const convOn = $('convOn').checked;
     const halfLifeDays = Math.max(0, num($('nu').value));
@@ -1381,11 +1416,18 @@
     const borrowerRate = refRate + incentiveApr;
     const primaryBorrowerApr = primaryShare * borrowerRate;
     const secondaryBorrowerApr = secondaryShare * borrowerRate;
+    const polarBorrowerApr = polarShare * borrowerRate;
     const pusdApr = primaryBorrowerApr;               // pool≈debt
     const ctApr = secondaryBorrowerApr * ltv;         // derived
     const netBorrowRate = borrowerRate - incentiveApr;
     const pusdAprStaked = (pusdStakedFrac > 0) ? (pusdApr / pusdStakedFrac) : 0;
     const ctAprStaked = (pethStakedFrac > 0) ? (ctApr / pethStakedFrac) : 0;
+
+    // Polar yield: polarShare of borrower interest flows to POLAR stakers
+    // APR = (polarShare × borrowerRate × debtUSD) / (polarStakedFrac × polarMcapUsd)
+    const polarYieldUsd = polarBorrowerApr * debtUSD;
+    const polarStakedMcap = polarStakedFrac * polarMcapUsd;
+    const polarAprStaked = (polarStakedMcap > 0) ? (polarYieldUsd / polarStakedMcap) : 0;
 
     // CDP position view
     const cdpCollateralEth = cdpCollateral * pSpot;
@@ -1452,6 +1494,7 @@
     setText('aprConv', pct(aprConv));
     setText('polarMinted', fmt(polarMintedYear, 2));
     setText('polarInfl', (polarInflation === null) ? '—' : pct(polarInflation));
+    setText('polarAprRow', pct(polarAprStaked));
     setText('pusdAprRow', pct(pusdAprStaked));
     setText('ctAprRow', pct(ctAprStaked));
 
@@ -1551,6 +1594,9 @@
     setText('flowCtApr', pct(ctAprStaked));
     setText('flowCtAprSub', `APR`);
 
+    setText('flowPolarApr', pct(polarAprStaked));
+    setText('flowPolarAprSub', `${fmtUSD(polarYieldUsd)}/yr to stakers`);
+
     setText('flowPusdApr', pct(pusdAprStaked));
     setText('flowPusdAprSub', `APR`);
 
@@ -1580,6 +1626,12 @@
     if(flowCtNode){
       flowCtNode.classList.remove('good');
       if(ctAprStaked > 0) flowCtNode.classList.add('good');
+    }
+
+    const flowPolarNode = $('nodePolarApr');
+    if(flowPolarNode){
+      flowPolarNode.classList.remove('good');
+      if(polarAprStaked > 0) flowPolarNode.classList.add('good');
     }
 
     const flowPusdNode = $('nodePusdApr');
@@ -1645,8 +1697,8 @@
     'convOn','nu','theta','phi','polarMcapUsd','polarSupply',
     'cdpCollateral','cdpDebt','cdpPusd',
     'adv','ethUsd','premineEth','beta','p0','burnRatio','ltv','fee',
-    'refRate','primaryShare','secondaryShare',
-    'pethStakedPct','pusdStakedPct'
+    'refRate','primaryShare','secondaryShare','polarShare',
+    'pethStakedPct','pusdStakedPct','polarStakedPct'
   ].forEach(bindRecalc);
 
   // pretty formatting (only on blur)

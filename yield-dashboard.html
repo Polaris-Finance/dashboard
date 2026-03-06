@@ -993,7 +993,7 @@
         <marker id="arrow" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse">
           <path d="M0,0 L12,6 L0,12 Z" fill="rgba(233,236,255,.9)" />
         </marker>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
           <feGaussianBlur stdDeviation="2" result="b" />
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
@@ -1015,30 +1015,28 @@
       feesTop.x -= 18;
       borrowerBottom.x -= 18;
       const t = trimSegment(feesTop, borrowerBottom, {end: ARROW_PAD});
-      segs.push({d: linePath(t.a, t.b), stroke:'rgba(233,236,255,.92)', w:4, glow:false, cap:'butt'});
+      segs.push({d: linePath(t.a, t.b), stroke:'rgba(233,236,255,.92)', w:4, cap:'butt'});
     }
-    // borrower -> ct (enter from right side)
+    // borrower -> ct
     {
       const a = midTop(nodes.borrower);
-      const b = midRight(nodes.ct);
-      const t = trimSegment(a, b, {end: ARROW_PAD});
-      segs.push({d: curvePathSide(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
+      const b = midBottom(nodes.ct);
+      const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
+      segs.push({d: curvePath(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
     }
-    // borrower -> polar (straight up, offset right to avoid fees arrow)
+    // borrower -> polar (straight up)
     {
       const a = midTop(nodes.borrower);
       const b = midBottom(nodes.polar);
-      a.x += 18;
-      b.x += 18;
       const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
       segs.push({d: linePath(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
     }
-    // borrower -> pusd (enter from left side)
+    // borrower -> pusd
     {
       const a = midTop(nodes.borrower);
-      const b = midLeft(nodes.pusd);
-      const t = trimSegment(a, b, {end: ARROW_PAD});
-      segs.push({d: curvePathSide(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
+      const b = midBottom(nodes.pusd);
+      const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
+      segs.push({d: curvePath(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
     }
 
     const body = segs.map(s => {

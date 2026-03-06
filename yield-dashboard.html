@@ -159,7 +159,7 @@
           <!-- DailyVolUSD = CurrentMCUSD · (dailyTurnover%/100). AnnualTurnover = (dailyTurnover%/100)·365. -->
           <div class="row" id="dailyTurnoverRow">
             <label>Daily turnover (% of mcap)</label>
-            <input id="dailyTurnover" type="text" inputmode="decimal" value="2" />
+            <input id="dailyTurnover" type="text" inputmode="decimal" value="1" />
           </div>
 
           <!-- AnnualVolumeUSD = DailyVolumeUSD · 365. -->
@@ -177,7 +177,7 @@
 
         <div class="row">
           <label>Net interest paid</label>
-          <input id="refRate" type="text" inputmode="decimal" value="5" />
+          <input id="refRate" type="text" inputmode="decimal" value="4" />
         </div>
 
         <div class="row">
@@ -216,31 +216,31 @@
           <!-- Fraction of borrower interest allocated to pUSD holders (pool assumed = debt). -->
           <div class="row">
             <label>Interest split to pUSD holders (primaryShare)</label>
-            <input id="primaryShare" type="text" inputmode="decimal" value="0.50" />
+            <input id="primaryShare" type="text" inputmode="decimal" value="0.60" />
           </div>
 
           <!-- Fraction of borrower interest allocated to pETH stakers (APR shown on collateral value). -->
           <div class="row">
             <label>Interest split to pETH stakers (secondaryShare)</label>
-            <input id="secondaryShare" type="text" inputmode="decimal" value="0.20" />
+            <input id="secondaryShare" type="text" inputmode="decimal" value="0.40" />
           </div>
 
           <!-- Fraction of borrower interest allocated to POLAR stakers. -->
           <div class="row">
             <label>Interest split to POLAR stakers (polarShare)</label>
-            <input id="polarShare" type="text" inputmode="decimal" value="0.30" />
+            <input id="polarShare" type="text" inputmode="decimal" value="0.00" />
           </div>
 
           <h3 style="margin:12px 0 6px 0; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:#9aa5d8;">Staking Assumptions</h3>
 
           <div class="row">
             <label>pETH staked (% of circulating)</label>
-            <input id="pethStakedPct" type="text" inputmode="decimal" value="50" />
+            <input id="pethStakedPct" type="text" inputmode="decimal" value="80" />
           </div>
 
           <div class="row">
             <label>pUSD staked (% of supply)</label>
-            <input id="pusdStakedPct" type="text" inputmode="decimal" value="60" />
+            <input id="pusdStakedPct" type="text" inputmode="decimal" value="80" />
           </div>
 
           <div class="row">
@@ -1024,8 +1024,8 @@
       const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
       segs.push({d: curvePath(t.a, t.b), stroke:'rgba(87,239,196,.55)', w:2.8});
     }
-    // borrower -> polar (straight up)
-    {
+    // borrower -> polar (straight up) — only if polar node is visible
+    if(nodes.polar.style.display !== 'none'){
       const a = midTop(nodes.borrower);
       const b = midBottom(nodes.polar);
       const t = trimSegment(a, b, {start: ARROW_PAD, end: ARROW_PAD});
@@ -1630,6 +1630,7 @@
     if(flowPolarNode){
       flowPolarNode.classList.remove('good');
       if(polarAprStaked > 0) flowPolarNode.classList.add('good');
+      flowPolarNode.style.display = (polarShare > 0) ? '' : 'none';
     }
 
     const flowPusdNode = $('nodePusdApr');
